@@ -1,0 +1,6 @@
+GameBoy.exe
+.vscode/
+build/
+logs/
+roms/
+saves/
