@@ -63,7 +63,7 @@ uint8_t MBC0::ReadRAM(uint16_t addr)
         return RAM_[addr - 0xA000];
     }
 
-    return 0x00;
+    return 0xFF;
 }
 
 void MBC0::WriteRAM(uint16_t addr, uint8_t data)

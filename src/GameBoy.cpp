@@ -4,7 +4,7 @@
 #include <functional>
 #include <iostream>
 
-namespace IO_REG
+namespace IO
 {
 /// @brief Enum of I/O Register addresses. Only use lower byte since upper byte is 0xFF for all addresses.
 enum : uint8_t
@@ -126,9 +126,15 @@ enum : uint8_t
 };
 }  // namespace INT_SRC
 
-GameBoy::GameBoy() :
-    cpu_(std::bind(&GameBoy::Read, this, RW_SRC::CPU, std::placeholders::_1),
-         std::bind(&GameBoy::Write, this, RW_SRC::CPU, std::placeholders::_1, std::placeholders::_2)),
+GameBoy::GameBoy(uint8_t* const frameBuffer) :
+    cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
+         std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2)),
+    ppu_({ioReg_[IO::LCDC], ioReg_[IO::STAT], ioReg_[IO::SCY], ioReg_[IO::SCX], ioReg_[IO::LY], ioReg_[IO::LYC], ioReg_[IO::WY], ioReg_[IO::WX]},
+         {ioReg_[IO::BGP], ioReg_[IO::OBP0], ioReg_[IO::OBP1], BG_CRAM_, OBJ_CRAM_},
+         {ioReg_[IO::OPRI], OAM_},
+         VRAM_,
+         cgbMode_,
+         frameBuffer),
     cartridge_(nullptr)
 {
 }
@@ -140,11 +146,16 @@ void GameBoy::Run()
         return;
     }
 
-    while (true)
+    while (!ppu_.FrameReady())
     {
         if (cpu_.Clock(CheckPendingInterrupts()))
         {
             AcknowledgeInterrupt();
+        }
+
+        for (size_t i = 0; i < 4; ++i)
+        {
+            ppu_.Clock(oamDmaInProgress_);
         }
 
         if (serialTransferInProgress_)
@@ -159,43 +170,60 @@ void GameBoy::Run()
 
         ClockTimer();
     }
+
+    // PrintBackgroundMap();
 }
 
 void GameBoy::Reset()
 {
+    for (auto& bank : VRAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    for (auto& bank : WRAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    OAM_.fill(0x00);
+    HRAM_.fill(0x00);
+    BG_CRAM_.fill(0x00);
+    OBJ_CRAM_.fill(0x00);
+
     ioReg_.fill(0x00);
-    ioReg_[IO_REG::JOYP] = 0xCF;
-    ioReg_[IO_REG::SC] = 0x7F;
-    ioReg_[IO_REG::TAC] = 0xF8;
-    ioReg_[IO_REG::IF] = 0xE1;
-    ioReg_[IO_REG::NR10] = 0x80;
-    ioReg_[IO_REG::NR11] = 0xBF;
-    ioReg_[IO_REG::NR12] = 0xF3;
-    ioReg_[IO_REG::NR13] = 0xFF;
-    ioReg_[IO_REG::NR14] = 0xBF;
-    ioReg_[IO_REG::NR21] = 0x3F;
-    ioReg_[IO_REG::NR23] = 0xFF;
-    ioReg_[IO_REG::NR24] = 0xBF;
-    ioReg_[IO_REG::NR30] = 0x7F;
-    ioReg_[IO_REG::NR31] = 0xFF;
-    ioReg_[IO_REG::NR32] = 0x9F;
-    ioReg_[IO_REG::NR33] = 0xFF;
-    ioReg_[IO_REG::NR34] = 0xBF;
-    ioReg_[IO_REG::NR41] = 0xFF;
-    ioReg_[IO_REG::NR44] = 0xBF;
-    ioReg_[IO_REG::NR50] = 0x77;
-    ioReg_[IO_REG::NR51] = 0xF3;
-    ioReg_[IO_REG::NR52] = 0xF1;
-    ioReg_[IO_REG::LCDC] = 0x91;
-    ioReg_[IO_REG::BGP] = 0xFC;
-    ioReg_[IO_REG::KEY1] = 0xFF;
-    ioReg_[IO_REG::VBK] = 0xFF;
-    ioReg_[IO_REG::HDMA1] = 0xFF;
-    ioReg_[IO_REG::HDMA2] = 0xFF;
-    ioReg_[IO_REG::HDMA3] = 0xFF;
-    ioReg_[IO_REG::HDMA4] = 0xFF;
-    ioReg_[IO_REG::HDMA5] = 0xFF;
-    ioReg_[IO_REG::SVBK] = 0xFF;
+    ioReg_[IO::JOYP] = 0xCF;
+    ioReg_[IO::SC] = 0x7F;
+    ioReg_[IO::TAC] = 0xF8;
+    ioReg_[IO::IF] = 0xE1;
+    ioReg_[IO::NR10] = 0x80;
+    ioReg_[IO::NR11] = 0xBF;
+    ioReg_[IO::NR12] = 0xF3;
+    ioReg_[IO::NR13] = 0xFF;
+    ioReg_[IO::NR14] = 0xBF;
+    ioReg_[IO::NR21] = 0x3F;
+    ioReg_[IO::NR23] = 0xFF;
+    ioReg_[IO::NR24] = 0xBF;
+    ioReg_[IO::NR30] = 0x7F;
+    ioReg_[IO::NR31] = 0xFF;
+    ioReg_[IO::NR32] = 0x9F;
+    ioReg_[IO::NR33] = 0xFF;
+    ioReg_[IO::NR34] = 0xBF;
+    ioReg_[IO::NR41] = 0xFF;
+    ioReg_[IO::NR44] = 0xBF;
+    ioReg_[IO::NR50] = 0x77;
+    ioReg_[IO::NR51] = 0xF3;
+    ioReg_[IO::NR52] = 0xF1;
+    ioReg_[IO::LCDC] = 0x91;
+    ioReg_[IO::BGP] = 0xFC;
+    ioReg_[IO::KEY1] = 0xFF;
+    ioReg_[IO::VBK] = 0x00;
+    ioReg_[IO::HDMA1] = 0xFF;
+    ioReg_[IO::HDMA2] = 0xFF;
+    ioReg_[IO::HDMA3] = 0xFF;
+    ioReg_[IO::HDMA4] = 0xFF;
+    ioReg_[IO::HDMA5] = 0xFF;
+    ioReg_[IO::SVBK] = 0xFF;
 
     cgbMode_ = false;
 
@@ -215,6 +243,7 @@ void GameBoy::Reset()
     oamIndexDest_ = 0;
 
     lastPendingInterrupt_ = 0x00;
+    prevStatState_ = false;
 
     cpu_.Reset();
     cartridge_->Reset();
@@ -284,13 +313,18 @@ void GameBoy::InsertCartridge(fs::path romPath)
     cpu_.Reset();
 }
 
+bool GameBoy::FrameReady()
+{
+    return ppu_.FrameReady();
+}
+
 void GameBoy::ClockTimer()
 {
     ++divCounter_;
 
     if (divCounter_ == 64)
     {
-        ++ioReg_[IO_REG::DIV];
+        ++ioReg_[IO::DIV];
         divCounter_ = 0;
     }
 
@@ -301,15 +335,15 @@ void GameBoy::ClockTimer()
         if (timerReload_)
         {
             timerReload_ = false;
-            ioReg_[IO_REG::TIMA] = ioReg_[IO_REG::TMA];
-            ioReg_[IO_REG::IF] |= INT_SRC::TIMER;
+            ioReg_[IO::TIMA] = ioReg_[IO::TMA];
+            ioReg_[IO::IF] |= INT_SRC::TIMER;
         }
         else if (timerCounter_ == timerControl_)
         {
             timerCounter_ = 0x0000;
-            ++ioReg_[IO_REG::TIMA];
+            ++ioReg_[IO::TIMA];
 
-            if (ioReg_[IO_REG::TIMA] == 0x00)
+            if (ioReg_[IO::TIMA] == 0x00)
             {
                 timerReload_ = true;
             }
@@ -319,7 +353,7 @@ void GameBoy::ClockTimer()
 
 void GameBoy::ClockOamDma()
 {
-    OAM_[oamIndexDest_++] = Read(RW_SRC::BUS, oamDmaSrcAddr_++);
+    OAM_[oamIndexDest_++] = Read(oamDmaSrcAddr_++);
     --oamDmaCyclesRemaining_;
 
     if (oamDmaCyclesRemaining_ == 0)
@@ -331,16 +365,16 @@ void GameBoy::ClockOamDma()
 void GameBoy::ClockSerialTransfer()
 {
     serialOutData_ <<= 1;
-    serialOutData_ |= (ioReg_[IO_REG::SB] & 0x80) >> 7;
-    ioReg_[IO_REG::SB] <<= 1;
-    ioReg_[IO_REG::SB] |= 0x01;
+    serialOutData_ |= (ioReg_[IO::SB] & 0x80) >> 7;
+    ioReg_[IO::SB] <<= 1;
+    ioReg_[IO::SB] |= 0x01;
     ++serialBitsSent_;
 
     if (serialBitsSent_ == 8)
     {
         serialTransferInProgress_ = false;
-        ioReg_[IO_REG::SC] &= 0x7F;
-        ioReg_[IO_REG::IF] |= INT_SRC::SERIAL;
+        ioReg_[IO::SC] &= 0x7F;
+        ioReg_[IO::IF] |= INT_SRC::SERIAL;
 
         #ifdef PRINT_SERIAL
             std::cout << (char)serialOutData_;
@@ -350,7 +384,9 @@ void GameBoy::ClockSerialTransfer()
 
 std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
 {
-    uint8_t pendingInterrupts = ioReg_[IO_REG::IF] & IE_;
+    CheckVBlankInterrupt();
+    CheckStatInterrupt();
+    uint8_t pendingInterrupts = ioReg_[IO::IF] & IE_;
 
     if (pendingInterrupts != 0x00)
     {
@@ -396,13 +432,57 @@ std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
 
 void GameBoy::AcknowledgeInterrupt()
 {
-    ioReg_[IO_REG::IF] &= ~lastPendingInterrupt_;
+    ioReg_[IO::IF] &= ~lastPendingInterrupt_;
 }
 
-uint8_t GameBoy::Read(RW_SRC src, uint16_t addr)
+void GameBoy::CheckVBlankInterrupt()
 {
-    (void)src;
+    if (ppu_.VBlank())
+    {
+        ioReg_[IO::IF] |= INT_SRC::VBLANK;
+    }
+}
 
+void GameBoy::CheckStatInterrupt()
+{
+    bool currStatState_ = false;
+
+    // Check for LYC=LY interrupt
+    if ((ioReg_[IO::STAT] & 0x44) == 0x44)
+    {
+        currStatState_ = true;
+    }
+    else
+    {
+        // Check for Mode interrupt
+        uint8_t ppuMode = (ioReg_[IO::STAT] & 0x03);
+
+        switch (ppuMode)
+        {
+            case 0:
+                currStatState_ = (ioReg_[IO::STAT] & 0x08);
+                break;
+            case 1:
+                currStatState_ = (ioReg_[IO::STAT] & 0x10);
+                break;
+            case 2:
+                currStatState_ = (ioReg_[IO::STAT] & 0x20);
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (!prevStatState_ && currStatState_)
+    {
+        ioReg_[IO::IF] |= INT_SRC::LCD_STAT;
+    }
+
+    prevStatState_ = currStatState_;
+}
+
+uint8_t GameBoy::Read(uint16_t addr)
+{
     if (addr < 0x8000)
     {
         // Cartridge ROM
@@ -411,7 +491,7 @@ uint8_t GameBoy::Read(RW_SRC src, uint16_t addr)
     else if (addr < 0xA000)
     {
         // VRAM, TODO: prevent reading during specific modes
-        return VRAM_[ioReg_[IO_REG::VBK] & 0x01][addr - 0x8000];
+        return VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000];
     }
     else if (addr < 0xC000)
     {
@@ -426,7 +506,7 @@ uint8_t GameBoy::Read(RW_SRC src, uint16_t addr)
     else if (addr < 0xE000)
     {
         // WRAM Banks 1-7
-        uint8_t ramBank = (ioReg_[IO_REG::SVBK] == 0x00) ? 0x01 : (ioReg_[IO_REG::SVBK] & 0x07);
+        uint8_t ramBank = (ioReg_[IO::SVBK] == 0x00) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         return WRAM_[ramBank][addr - 0xD000];
     }
     else if (addr < 0xFE00)
@@ -462,10 +542,8 @@ uint8_t GameBoy::Read(RW_SRC src, uint16_t addr)
     return 0x00;
 }
 
-void GameBoy::Write(RW_SRC src, uint16_t addr, uint8_t data)
+void GameBoy::Write(uint16_t addr, uint8_t data)
 {
-    (void)src;
-
     if (addr < 0x8000)
     {
         // Cartridge ROM
@@ -474,7 +552,7 @@ void GameBoy::Write(RW_SRC src, uint16_t addr, uint8_t data)
     else if (addr < 0xA000)
     {
         // VRAM, TODO: prevent writing during specific modes
-        VRAM_[ioReg_[IO_REG::VBK] & 0x01][addr - 0x8000] = data;
+        VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000] = data;
     }
     else if (addr < 0xC000)
     {
@@ -489,7 +567,7 @@ void GameBoy::Write(RW_SRC src, uint16_t addr, uint8_t data)
     else if (addr < 0xE000)
     {
         // WRAM Banks 1-7
-        uint8_t ramBank = (ioReg_[IO_REG::SVBK] == 0x00) ? 0x01 : (ioReg_[IO_REG::SVBK] & 0x07);
+        uint8_t ramBank = (ioReg_[IO::SVBK] == 0x00) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         WRAM_[ramBank][addr - 0xD000] = data;
     }
     else if (addr < 0xFE00)
@@ -499,6 +577,7 @@ void GameBoy::Write(RW_SRC src, uint16_t addr, uint8_t data)
     else if (addr < 0xFEA0)
     {
         // OAM, TODO
+        OAM_[addr - 0xFE00] = data;
     }
     else if (addr < 0xFF00)
     {
@@ -523,6 +602,20 @@ void GameBoy::Write(RW_SRC src, uint16_t addr, uint8_t data)
 
 uint8_t GameBoy::ReadIoReg(uint16_t addr)
 {
+    switch (addr & 0xFF)
+    {
+        case IO::BCPD:  // Background color palette data
+            // TODO: prevent reading during specific modes
+            return BG_CRAM_[ioReg_[IO::BCPS] & 0x3F];
+        case IO::OCPD:  // OBJ color palette data
+            // TODO: prevent reading during specific modes
+            return OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F];
+        case IO::KEY1:
+            return 0xFF;
+        default:
+            break;
+    }
+
     return ioReg_[addr & 0x00FF];
 }
 
@@ -530,55 +623,117 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
 {
     switch (addr & 0xFF)
     {
-        case IO_REG::SC: // Serial transfer control
-            ioReg_[IO_REG::SC] = data;
+        case IO::SC:  // Serial transfer control
+            ioReg_[IO::SC] = data;
             serialTransferInProgress_ = (data & 0x80) == 0x80;
             serialBitsSent_ = 0x00;
             break;
-        case IO_REG::DIV: // Divider register
-            ioReg_[IO_REG::DIV] = 0x00;
+        case IO::DIV:  // Divider register
+            ioReg_[IO::DIV] = 0x00;
             timerCounter_ = 0x0000;
             divCounter_ = 0x00;
             break;
-        case IO_REG::TIMA: // Timer counter
+        case IO::TIMA:  // Timer counter
             timerReload_ = false;
-            ioReg_[IO_REG::TIMA] = data;
+            ioReg_[IO::TIMA] = data;
             break;
-        case IO_REG::TAC: // Timer control
+        case IO::TAC:  // Timer control
         {
-            ioReg_[IO_REG::TAC] = data;
-            timerCounter_ = 0x0000;
-            timerEnabled_ = (data & 0x04) == 0x04;
-            uint8_t clockSelect = data & 0x03;
-
-            switch (clockSelect)
-            {
-                case 0x00:
-                    timerControl_ = 256;
-                    break;
-                case 0x01:
-                    timerControl_ = 4;
-                    break;
-                case 0x02:
-                    timerControl_ = 16;
-                    break;
-                case 0x03:
-                    timerControl_ = 64;
-                    break;
-            }
-
+            IoWriteTAC(data);
             break;
         }
-        case IO_REG::DMA: // OAM DMA source address
-            data %= 0xE0;
-            ioReg_[IO_REG::DMA] = data;
-            oamDmaInProgress_ = true;
-            oamDmaCyclesRemaining_ = 160;
-            oamDmaSrcAddr_ = data << 8;
-            oamIndexDest_ = 0;
+        case IO::STAT:  // STAT register
+        {
+            data &= 0x78;
+            ioReg_[IO::STAT] &= 0x07;
+            ioReg_[IO::STAT] |= data;
+            break;
+        }
+        case IO::DMA:  // OAM DMA source address
+            IoWriteDMA(data);
+            break;
+        case IO::BCPD:  // Background color palette data
+            IoWriteBCPD(data);
+            break;
+        case IO::OCPD:  // OBJ color palette data
+            IoWriteOCPD(data);
             break;
         default:
             ioReg_[addr & 0xFF] = data;
             break;
+    }
+}
+
+void GameBoy::IoWriteTAC(uint8_t data)
+{
+    ioReg_[IO::TAC] = data;
+    timerCounter_ = 0x0000;
+    timerEnabled_ = (data & 0x04) == 0x04;
+    uint8_t clockSelect = data & 0x03;
+
+    switch (clockSelect)
+    {
+        case 0x00:
+            timerControl_ = 256;
+            break;
+        case 0x01:
+            timerControl_ = 4;
+            break;
+        case 0x02:
+            timerControl_ = 16;
+            break;
+        case 0x03:
+            timerControl_ = 64;
+            break;
+    }
+}
+
+void GameBoy::IoWriteDMA(uint8_t data)
+{
+    data %= 0xE0;
+
+    if (data < 0x80)
+    {
+        oamDmaSrc_ = OamDmaSrc::CART_ROM;
+    }
+    else if (data < 0xA0)
+    {
+        oamDmaSrc_ = OamDmaSrc::VRAM;
+    }
+    else if (data < 0xC0)
+    {
+        oamDmaSrc_ = OamDmaSrc::CART_RAM;
+    }
+    else
+    {
+        oamDmaSrc_ = OamDmaSrc::WRAM;
+    }
+
+    ioReg_[IO::DMA] = data;
+    oamDmaInProgress_ = true;
+    oamDmaCyclesRemaining_ = 160;
+    oamDmaSrcAddr_ = data << 8;
+    oamIndexDest_ = 0;
+}
+
+void GameBoy::IoWriteBCPD(uint8_t data)
+{
+    // TODO: prevent writing during specific modes
+    BG_CRAM_[ioReg_[IO::BCPS] & 0x3F] = data;
+
+    if (ioReg_[IO::BCPS] & 0x80)
+    {
+        ioReg_[IO::BCPS] = (ioReg_[IO::BCPS] & 0xC0) | ((ioReg_[IO::BCPS] + 1) & 0x3F);
+    }
+}
+
+void GameBoy::IoWriteOCPD(uint8_t data)
+{
+    // TODO: prevent writing during specific modes
+    OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F] = data;
+
+    if (ioReg_[IO::OCPS] & 0x80)
+    {
+        ioReg_[IO::OCPS] = (ioReg_[IO::OCPS] & 0xC0) | ((ioReg_[IO::OCPS] + 1) & 0x3F);
     }
 }

@@ -117,7 +117,7 @@ uint8_t MBC1::ReadRAM(uint16_t addr)
         return RAM_[addr];
     }
 
-    return 0x00;
+    return 0xFF;
 }
 
 void MBC1::WriteRAM(uint16_t addr, uint8_t data)

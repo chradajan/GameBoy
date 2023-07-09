@@ -1,5 +1,8 @@
+#define SDL_MAIN_HANDLED
 #include <GameBoy.hpp>
+#include <GameWindow.hpp>
 #include <Paths.hpp>
+#include <array>
 #include <filesystem>
 
 int main(int argc, char** argv)
@@ -14,13 +17,18 @@ int main(int argc, char** argv)
         std::filesystem::create_directory(SAVE_PATH);
     }
 
-    GameBoy gb = GameBoy();
+    std::array<uint8_t, SCREEN_WIDTH * SCREEN_HEIGHT * CHANNELS> frameBuffer;
+    frameBuffer.fill(0x00);
+
+    auto gameBoy = GameBoy(frameBuffer.data());
+    auto gameWindow = GameWindow(&gameBoy, frameBuffer.data());
 
     if (argc > 1)
     {
-        gb.InsertCartridge(argv[1]);
-        gb.Run();
+        gameBoy.InsertCartridge(argv[1]);
     }
+
+    gameWindow.Run();
 
     return 0;
 }
