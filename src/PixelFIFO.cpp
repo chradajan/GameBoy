@@ -280,7 +280,8 @@ void PixelFIFO::ClockBackgroundFetcher()
             {
                 backgroundFetcher_.tileAddr = ppuPtr_->BackgroundTileMapBaseAddr();
                 fetcherX_ = (fifoState_ == FifoState::FETCHING_FIRST_SLICE) ? ppuPtr_->reg_.SCX / 8 : (fetcherX_ + 1) % 32;
-                backgroundFetcher_.tileAddr |= ((( ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) / 8) << 5);
+                uint8_t temp = ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY;
+                backgroundFetcher_.tileAddr |= ((temp / 8) << 5);
                 backgroundFetcher_.tileAddr |= fetcherX_;
             }
 
