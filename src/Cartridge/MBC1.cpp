@@ -19,6 +19,7 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
     containsRAM_ = (ramBanks > 0);
     romBankCount_ = romBanks;
     ramBankCount_ = ramBanks;
+    largeCart_ = (ramBanks > 32);
 
     ROM_.resize(romBanks);
     RAM_.resize(ramBanks);
@@ -88,7 +89,7 @@ uint8_t MBC1::ReadROM(uint16_t addr)
 {
     if (addr < 0x4000)
     {
-        if (advancedBankMode_ && (romBankCount_ > 32))
+        if (advancedBankMode_ && largeCart_)
         {
             uint_fast8_t bank = ramBank_ * 0x20;
 
@@ -108,7 +109,7 @@ uint8_t MBC1::ReadROM(uint16_t addr)
     {
         addr -= 0x4000;
 
-        if (romBankCount_ > 32)
+        if (largeCart_)
         {
             uint_fast16_t fullAddr = (ramBank_ << 19) | (romBank_ << 9) | addr;
             uint_fast16_t bank = fullAddr / 0x4000;
@@ -164,7 +165,7 @@ uint8_t MBC1::ReadRAM(uint16_t addr)
     {
         addr -= 0xA000;
 
-        if (ramBankCount_ == 1)
+        if (!advancedBankMode_ || (advancedBankMode_ && largeCart_) || (ramBankCount_ == 1))
         {
             return RAM_[0][addr];
         }

@@ -42,4 +42,5 @@ private:
     uint8_t ramBankCount_;
 
     bool advancedBankMode_;
+    bool largeCart_;
 };
