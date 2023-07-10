@@ -50,7 +50,8 @@ public:
     bool FrameReady();
     bool VBlank();
 
-private:
+    uint8_t GetMode() const { return reg_.STAT & 0x03; }
+
     // LCDC flags
     bool LCDEnabled() const { return reg_.LCDC & 0x80; }
     uint16_t WindowTileMapBaseAddr() const { return (reg_.LCDC & 0x40) ? 0x9C00 : 0x9800; }
@@ -62,8 +63,8 @@ private:
     bool WindowAndBackgroundEnabled() const { return reg_.LCDC & 0x01; }
     bool SpriteMasterPriority() const { return !(reg_.LCDC & 0x01); }
 
+private:
     // STAT modes
-    uint8_t GetMode() const { return reg_.STAT & 0x03; }
     void SetMode(uint8_t mode) { reg_.STAT = (reg_.STAT & 0xFC) | (mode & 0x03); }
     void SetLYC()
     {
@@ -79,6 +80,7 @@ private:
 
     // Rendering
     void RenderPixel(Pixel pixel);
+    void OamScan(bool oamDmaInProgress);
 
     // Data from bus
     PPU_REG reg_;
@@ -99,15 +101,7 @@ private:
 
     std::vector<OamEntry> currentSprites_;
 
-    void OamScan(bool oamDmaInProgress);
-
     // FIFO
     friend class PixelFIFO;
     std::unique_ptr<PixelFIFO> pixelFifoPtr_;
-
-    // DEBUGGING
-    void PrintTileData();
-    void PrintBackgroundMap();
-    void PrintWindowMap();
-    void PrintOAM();
 };

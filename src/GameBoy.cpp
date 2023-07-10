@@ -170,8 +170,6 @@ void GameBoy::Run()
 
         ClockTimer();
     }
-
-    // PrintBackgroundMap();
 }
 
 void GameBoy::Reset()
@@ -455,7 +453,7 @@ void GameBoy::CheckStatInterrupt()
     else
     {
         // Check for Mode interrupt
-        uint8_t ppuMode = (ioReg_[IO::STAT] & 0x03);
+        uint_fast8_t ppuMode = (ioReg_[IO::STAT] & 0x03);
 
         switch (ppuMode)
         {
@@ -490,7 +488,12 @@ uint8_t GameBoy::Read(uint16_t addr)
     }
     else if (addr < 0xA000)
     {
-        // VRAM, TODO: prevent reading during specific modes
+        // VRAM
+        if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+        {
+            return 0xFF;
+        }
+
         return VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000];
     }
     else if (addr < 0xC000)
@@ -516,6 +519,11 @@ uint8_t GameBoy::Read(uint16_t addr)
     }
     else if (addr < 0xFEA0)
     {
+        if (ppu_.LCDEnabled() && ((ppu_.GetMode() == 2) || (ppu_.GetMode() == 3)))
+        {
+            return 0xFF;
+        }
+
         return OAM_[addr - 0xFE00];
     }
     else if (addr < 0xFF00)
@@ -551,7 +559,12 @@ void GameBoy::Write(uint16_t addr, uint8_t data)
     }
     else if (addr < 0xA000)
     {
-        // VRAM, TODO: prevent writing during specific modes
+        // VRAM
+        if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+        {
+            return;
+        }
+
         VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000] = data;
     }
     else if (addr < 0xC000)
@@ -576,7 +589,13 @@ void GameBoy::Write(uint16_t addr, uint8_t data)
     }
     else if (addr < 0xFEA0)
     {
-        // OAM, TODO
+        // OAM
+
+        if (ppu_.LCDEnabled() && ((ppu_.GetMode() == 2) || (ppu_.GetMode() == 3)))
+        {
+            return;
+        }
+
         OAM_[addr - 0xFE00] = data;
     }
     else if (addr < 0xFF00)
@@ -605,10 +624,18 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
     switch (addr & 0xFF)
     {
         case IO::BCPD:  // Background color palette data
-            // TODO: prevent reading during specific modes
+            if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+            {
+                return 0xFF;
+            }
+
             return BG_CRAM_[ioReg_[IO::BCPS] & 0x3F];
         case IO::OCPD:  // OBJ color palette data
-            // TODO: prevent reading during specific modes
+            if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+            {
+                return 0xFF;
+            }
+
             return OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F];
         case IO::KEY1:
             return 0xFF;
@@ -718,7 +745,11 @@ void GameBoy::IoWriteDMA(uint8_t data)
 
 void GameBoy::IoWriteBCPD(uint8_t data)
 {
-    // TODO: prevent writing during specific modes
+    if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+    {
+        return;
+    }
+
     BG_CRAM_[ioReg_[IO::BCPS] & 0x3F] = data;
 
     if (ioReg_[IO::BCPS] & 0x80)
@@ -729,7 +760,11 @@ void GameBoy::IoWriteBCPD(uint8_t data)
 
 void GameBoy::IoWriteOCPD(uint8_t data)
 {
-    // TODO: prevent writing during specific modes
+    if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
+    {
+        return;
+    }
+
     OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F] = data;
 
     if (ioReg_[IO::OCPS] & 0x80)

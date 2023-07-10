@@ -42,23 +42,29 @@ void PPU::Clock(bool const oamDmaInProgress)
         {
             reg_.LY = 0;
             windowY_ = 0;
+            vBlank_ = false;
         }
 
         if (reg_.LY < 144)
         {
             SetMode(2);
-            wyCondition_ = (reg_.LY == reg_.WY);
         }
-        else
+        else if (reg_.LY == 144)
         {
             SetMode(1);
             frameReady_ = true;
             framePointer_ = 0;
             vBlank_ = true;
+            wyCondition_ = false;
         }
     }
     else if (reg_.LY < 144)
     {
+        if (reg_.LY == reg_.WY)
+        {
+            wyCondition_ = true;
+        }
+
         if (dot_ == 80)
         {
             OamScan(oamDmaInProgress);
@@ -72,10 +78,6 @@ void PPU::Clock(bool const oamDmaInProgress)
         {
             SetMode(0);
         }
-    }
-    else if ((dot_ == 81) && (reg_.LY < 144))
-    {
-        SetMode(3);
     }
 
     SetLYC();
@@ -103,6 +105,7 @@ void PPU::Reset()
     vBlank_ = false;
     wyCondition_ = false;
     currentSprites_.clear();
+    SetMode(2);
 }
 
 bool PPU::FrameReady()
@@ -169,7 +172,13 @@ void PPU::RenderPixel(Pixel pixel)
     }
     else
     {
-        if (pixel.src == PixelSource::BLANK)
+        if (!LCDEnabled())
+        {
+            frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
+            frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];
+            frameBuffer_[framePointer_++] = DMG_PALETTE[0][2];
+        }
+        else if (pixel.src == PixelSource::BLANK)
         {
             frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
             frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];

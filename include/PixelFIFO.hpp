@@ -55,6 +55,8 @@ public:
     bool WindowVisible() const;
 
 private:
+    bool SwitchToWindow() const;
+
     void ClockSpriteFetcher();
     void PushSpritePixels();
     Pixel GetSpritePixel();
@@ -109,4 +111,5 @@ private:
 
     Fetcher backgroundFetcher_;
     Fetcher spriteFetcher_;
+    uint8_t fetcherX_;
 };

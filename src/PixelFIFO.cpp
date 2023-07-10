@@ -36,6 +36,7 @@ void PixelFIFO::Reset()
     // Pixel fetcher
     backgroundFetcher_ = {};
     spriteFetcher_ = {};
+    fetcherX_ = 0;
 }
 
 std::optional<Pixel> PixelFIFO::Clock()
@@ -53,14 +54,11 @@ std::optional<Pixel> PixelFIFO::Clock()
             break;
         case FifoState::FETCHING_FIRST_SLICE:
         {
-            if (!fetchingWindow_ &&
-                ppuPtr_->WindowEnabled() &&
-                (ppuPtr_->cgbMode_ || (!ppuPtr_->cgbMode_ && ppuPtr_->WindowAndBackgroundEnabled())) &&
-                ppuPtr_->wyCondition_ &&
-                (ppuPtr_->LX_ >= (ppuPtr_->reg_.WX - 7)))
+            if (SwitchToWindow())
             {
                 fetchingWindow_ = true;
                 backgroundFetcher_ = {};
+                backgroundFIFO_.clear();
             }
 
             ClockBackgroundFetcher();
@@ -83,14 +81,11 @@ std::optional<Pixel> PixelFIFO::Clock()
         }
         case FifoState::RENDERING_PIXELS:
         {
-            if (!fetchingWindow_ &&
-                ppuPtr_->WindowEnabled() &&
-                (ppuPtr_->cgbMode_ || (!ppuPtr_->cgbMode_ && ppuPtr_->WindowAndBackgroundEnabled())) &&
-                ppuPtr_->wyCondition_ &&
-                (ppuPtr_->LX_ >= (ppuPtr_->reg_.WX - 7)))
+            if (SwitchToWindow())
             {
                 fetchingWindow_ = true;
                 backgroundFetcher_ = {};
+                backgroundFIFO_.clear();
                 fifoState_ = FifoState::SWITCHING_TO_WINDOW;
                 ClockBackgroundFetcher();
             }
@@ -133,6 +128,15 @@ void PixelFIFO::LoadSprites(std::vector<OamEntry> const& sprites)
 bool PixelFIFO::WindowVisible() const
 {
     return fetchingWindow_;
+}
+
+bool PixelFIFO::SwitchToWindow() const
+{
+    return (!fetchingWindow_ &&
+            ppuPtr_->WindowEnabled() &&
+            (ppuPtr_->cgbMode_ || (!ppuPtr_->cgbMode_ && ppuPtr_->WindowAndBackgroundEnabled())) &&
+            ppuPtr_->wyCondition_ &&
+            (ppuPtr_->LX_ == ppuPtr_->reg_.WX - 7));
 }
 
 void PixelFIFO::ClockSpriteFetcher()
@@ -268,18 +272,16 @@ void PixelFIFO::ClockBackgroundFetcher()
             if (fetchingWindow_)
             {
                 backgroundFetcher_.tileAddr = ppuPtr_->WindowTileMapBaseAddr();
+                fetcherX_ = (fifoState_ == FifoState::SWITCHING_TO_WINDOW) ? 0 : (fetcherX_ + 1) % 32;
                 backgroundFetcher_.tileAddr |= ((ppuPtr_->windowY_ / 8) << 5);
-                backgroundFetcher_.tileAddr |= (ppuPtr_->LX_ / 8);
+                backgroundFetcher_.tileAddr |= fetcherX_;
             }
             else
             {
                 backgroundFetcher_.tileAddr = ppuPtr_->BackgroundTileMapBaseAddr();
-                uint8_t temp = ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY;
-                temp /= 8;
-                backgroundFetcher_.tileAddr |= (temp << 5);
-                temp = ppuPtr_->LX_ + ppuPtr_->reg_.SCX;
-                temp /= 8;
-                backgroundFetcher_.tileAddr |= temp;
+                fetcherX_ = (fifoState_ == FifoState::FETCHING_FIRST_SLICE) ? ppuPtr_->reg_.SCX / 8 : (fetcherX_ + 1) % 32;
+                backgroundFetcher_.tileAddr |= ((( ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) / 8) << 5);
+                backgroundFetcher_.tileAddr |= fetcherX_;
             }
 
             backgroundFetcher_.tileId = ppuPtr_->VRAM_[0][backgroundFetcher_.tileAddr - 0x8000];
@@ -314,7 +316,7 @@ void PixelFIFO::ClockBackgroundFetcher()
                 backgroundFetcher_.tileAddr |= 0x1000;
             }
 
-            backgroundFetcher_.tileAddr |= ((backgroundFetcher_.tileId) << 4);
+            backgroundFetcher_.tileAddr |= (backgroundFetcher_.tileId << 4);
             uint8_t row = fetchingWindow_ ? (ppuPtr_->windowY_ % 8) :
                                             ((ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) % 8);
 
