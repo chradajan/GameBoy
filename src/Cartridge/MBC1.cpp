@@ -17,12 +17,23 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
     savePath_ = savePath;
     batteryBacked_ = (cartridgeType == 0x03);
     containsRAM_ = (ramBanks > 0);
+    romBankCount_ = romBanks;
+    ramBankCount_ = ramBanks;
 
-    ROM_.resize(romBanks * 0x4000);
-    RAM_.resize(ramBanks * 0x2000, 0x00);
+    ROM_.resize(romBanks);
+    RAM_.resize(ramBanks);
 
-    std::copy(bank0.begin(), bank0.end(), ROM_.begin());
-    rom.read((char*)(ROM_.data() + 0x4000), (romBanks - 1) * 0x4000);
+    for (auto& bank : RAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    std::copy(bank0.begin(), bank0.end(), ROM_[0].begin());
+
+    for (size_t i = 1; i < ROM_.size(); ++i)
+    {
+        rom.read((char*)ROM_[i].data(), 0x4000);
+    }
 
     if (batteryBacked_)
     {
@@ -30,8 +41,20 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
 
         if (!save.fail())
         {
-            save.read((char*)RAM_.data(), RAM_.size());
+            for (auto& bank : RAM_)
+            {
+                save.read((char*)bank.data(), 0x2000);
+            }
         }
+    }
+
+    if (romBanks <= 16)
+    {
+        romBankMask_ = romBanks - 1;
+    }
+    else
+    {
+        romBankMask_ = 0x1F;
     }
 
     Reset();
@@ -45,60 +68,93 @@ MBC1::~MBC1()
 
         if (!save.fail())
         {
-            save.write((char*)RAM_.data(), RAM_.size());
+            for (auto& bank : RAM_)
+            {
+                save.write((char*)bank.data(), 0x2000);
+            }
         }
     }
 }
 
 void MBC1::Reset()
 {
-    lowBankReg_ = 0x00;
-    highBankReg_ = 0x01;
     ramEnabled_ = false;
-    mode1_ = false;
+    romBank_ = 1;
+    ramBank_ = 0;
+    advancedBankMode_ = false;
 }
 
 uint8_t MBC1::ReadROM(uint16_t addr)
 {
-    size_t actualAddr = addr;
-
     if (addr < 0x4000)
     {
-        if (mode1_)
+        if (advancedBankMode_ && (romBankCount_ > 32))
         {
-            actualAddr = ((highBankReg_ << 19) | addr) & (ROM_.size() - 1);
+            uint_fast8_t bank = ramBank_ * 0x20;
+
+            if (bank > romBankCount_)
+            {
+                bank = romBankCount_ - 1;
+            }
+
+            return ROM_[bank][addr];
+        }
+        else
+        {
+            return ROM_[0][addr];
         }
     }
     else
     {
-        actualAddr = ((highBankReg_ << 19) | (lowBankReg_ << 14) | addr) & (ROM_.size() - 1);
+        addr -= 0x4000;
+
+        if (romBankCount_ > 32)
+        {
+            uint_fast16_t fullAddr = (ramBank_ << 19) | (romBank_ << 9) | addr;
+            uint_fast16_t bank = fullAddr / 0x4000;
+
+            if (bank > romBankCount_)
+            {
+                bank = romBankCount_ - 1;
+            }
+
+            return ROM_[bank][addr];
+        }
+        else
+        {
+            return ROM_[romBank_][addr];
+        }
     }
 
-    return ROM_[actualAddr];
+    return 0xFF;
 }
 
 void MBC1::WriteROM(uint16_t addr, uint8_t data)
 {
     if (addr < 0x2000)
     {
-        ramEnabled_ = (data & 0x0A) == 0x0A;
+        ramEnabled_ = ((data & 0x0A) == 0x0A);
     }
     else if (addr < 0x4000)
     {
-        lowBankReg_ = data & 0x1F;
+        uint_fast8_t maskedBankNum = data & romBankMask_;
 
-        if (lowBankReg_ == 0x00)
+        if ((data & 0x1F) == 0x00)
         {
-            lowBankReg_ = 0x01;
+            romBank_ = 0x01;
+        }
+        else
+        {
+            romBank_ = maskedBankNum;
         }
     }
     else if (addr < 0x6000)
     {
-        highBankReg_ = data & 0x03;
+        ramBank_ = data & 0x03;
     }
     else
     {
-        mode1_ = data == 1;
+        advancedBankMode_ = (data & 0x01);
     }
 }
 
@@ -108,13 +164,14 @@ uint8_t MBC1::ReadRAM(uint16_t addr)
     {
         addr -= 0xA000;
 
-        if (mode1_)
+        if (ramBankCount_ == 1)
         {
-            addr |= (highBankReg_ << 13);
-            addr &= (RAM_.size() - 1);
+            return RAM_[0][addr];
         }
-
-        return RAM_[addr];
+        else
+        {
+            return RAM_[ramBank_][addr];
+        }
     }
 
     return 0xFF;
@@ -126,12 +183,13 @@ void MBC1::WriteRAM(uint16_t addr, uint8_t data)
     {
         addr -= 0xA000;
 
-        if (mode1_)
+        if (ramBankCount_ == 1)
         {
-            addr |= (highBankReg_ << 13);
-            addr &= (RAM_.size() - 1);
+            RAM_[0][addr] = data;
         }
-
-        RAM_[addr] = data;
+        else
+        {
+            RAM_[ramBank_][addr] = data;
+        }
     }
 }

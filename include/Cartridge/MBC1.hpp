@@ -28,13 +28,18 @@ public:
     void WriteRAM(uint16_t addr, uint8_t data) override;
 
 private:
-    std::vector<uint8_t> ROM_;
-    std::vector<uint8_t> RAM_;
+    std::vector<std::array<uint8_t, 0x4000>> ROM_;
+    std::vector<std::array<uint8_t, 0x2000>> RAM_;
 
 // Registers
 private:
-    uint8_t lowBankReg_;
-    uint8_t highBankReg_;
     bool ramEnabled_;
-    bool mode1_;
+    uint8_t romBank_;
+    uint8_t romBankMask_;
+    uint16_t romBankCount_;
+
+    uint8_t ramBank_;
+    uint8_t ramBankCount_;
+
+    bool advancedBankMode_;
 };
