@@ -69,11 +69,11 @@ MBC5::~MBC5()
 
 void MBC5::Reset()
 {
-    romBankIndex_ = 0;
+    romBankIndex_ = 0x0001;
     ramEnabled_ = false;
-    romBankLsb_ = 0;
-    romBankMsb_ = 0;
-    ramBank_ = 0;
+    romBankLsb_ = 0x01;
+    romBankMsb_ = 0x00;
+    ramBank_ = 0x00;
 }
 
 uint8_t MBC5::ReadROM(uint16_t addr)
