@@ -35,11 +35,17 @@ public:
     void SetInputs(Buttons const& buttons);
 
 private:
+    void RunMCycle();
+
     /// @brief Clock the timer components.
     void ClockTimer();
 
     /// @brief Run one cycle of an OAM DMA transfer.
     void ClockOamDma();
+
+    void ClockVramGDMA();
+
+    void ClockVramHDMA();
 
     /// @brief Run one cycle of a serial transfer.
     void ClockSerialTransfer();
@@ -80,6 +86,7 @@ private:
 
     void IoWriteTAC(uint8_t data);
     void IoWriteDMA(uint8_t data);
+    void IoWriteVramDMA(uint8_t data);
     void IoWriteBCPD(uint8_t data);
     void IoWriteOCPD(uint8_t data);
 
@@ -124,6 +131,16 @@ private:
     uint8_t oamDmaCyclesRemaining_;
     uint16_t oamDmaSrcAddr_;
     uint8_t oamIndexDest_;
+
+    // VRAM DMA
+    uint16_t vramDmaSrcAddr_;
+    uint16_t vramDmaDestAddr_;
+    bool gdmaInProgress_;
+    bool hdmaInProgress_;
+    uint16_t gdmaBytesRemaining_;
+    uint8_t hdmaBytesRemaining_;
+    uint8_t hdmaBlocksRemaining_;
+    uint8_t hdmaLy_;
 
     // Interrupts
     uint8_t lastPendingInterrupt_;

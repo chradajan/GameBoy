@@ -294,7 +294,7 @@ void PixelFIFO::ClockBackgroundFetcher()
                 backgroundFetcher_.priority = attributes & 0x80;
                 backgroundFetcher_.verticalFlip = attributes & 0x40;
                 backgroundFetcher_.horizontalFlip = attributes & 0x20;
-                backgroundFetcher_.vramBank = attributes & 0x08;
+                backgroundFetcher_.vramBank = (attributes & 0x08) >> 3;
                 backgroundFetcher_.palette = attributes & 0x07;
             }
             else

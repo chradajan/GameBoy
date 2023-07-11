@@ -168,7 +168,40 @@ void PPU::RenderPixel(Pixel pixel)
 {
     if (cgbMode_)
     {
-        return;
+        if (!LCDEnabled() || (pixel.src == PixelSource::BLANK))
+        {
+            frameBuffer_[framePointer_++] = 255;
+            frameBuffer_[framePointer_++] = 255;
+            frameBuffer_[framePointer_++] = 255;
+        }
+        else
+        {
+            uint_fast8_t colorIndex = (pixel.palette * 8) + (pixel.color * 2);
+            uint_fast8_t lsb = 0x00;
+            uint_fast8_t msb = 0x00;
+
+            if (pixel.src == PixelSource::BACKGROUND)
+            {
+                lsb = palette_.BG_CRAM[colorIndex];
+                msb = palette_.BG_CRAM[colorIndex + 1];
+            }
+            else
+            {
+                lsb = palette_.OBJ_CRAM[colorIndex];
+                msb = palette_.OBJ_CRAM[colorIndex + 1];
+            }
+
+            uint_fast16_t rgb555 = (msb << 8) | lsb;
+
+            uint_fast8_t r = rgb555 & 0x001F;
+            frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
+
+            uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
+            frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
+
+            uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
+            frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
+        }
     }
     else
     {

@@ -149,27 +149,7 @@ void GameBoy::Run()
 
     while (!ppu_.FrameReady())
     {
-        if (cpu_.Clock(CheckPendingInterrupts()))
-        {
-            AcknowledgeInterrupt();
-        }
-
-        for (size_t i = 0; i < 4; ++i)
-        {
-            ppu_.Clock(oamDmaInProgress_);
-        }
-
-        if (serialTransferInProgress_)
-        {
-            ClockSerialTransfer();
-        }
-
-        if (oamDmaInProgress_)
-        {
-            ClockOamDma();
-        }
-
-        ClockTimer();
+        RunMCycle();
     }
 }
 
@@ -241,11 +221,19 @@ void GameBoy::Reset()
     oamDmaSrcAddr_ = 0x0000;
     oamIndexDest_ = 0;
 
+    vramDmaSrcAddr_ = 0x0000;
+    vramDmaDestAddr_ = 0x0000;
+    gdmaInProgress_ = false;
+    hdmaInProgress_ = false;
+    gdmaBytesRemaining_ = 0;
+    hdmaBytesRemaining_ = 0;
+    hdmaBlocksRemaining_ = 0;
+    hdmaLy_ = 0xFF;
+
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
 
     cpu_.Reset();
-    cartridge_->Reset();
 }
 
 void GameBoy::InsertCartridge(fs::path romPath)
@@ -254,6 +242,8 @@ void GameBoy::InsertCartridge(fs::path romPath)
     {
         cartridge_.reset();
     }
+
+    Reset();
 
     std::array<uint8_t, 0x4000> bank0;
     std::ifstream rom(romPath, std::ios::binary);
@@ -307,9 +297,6 @@ void GameBoy::InsertCartridge(fs::path romPath)
             cartridge_ = nullptr;
             break;
     }
-
-    Reset();
-    cpu_.Reset();
 }
 
 bool GameBoy::FrameReady()
@@ -379,6 +366,65 @@ void GameBoy::SetInputs(Buttons const& buttons)
     }
 }
 
+void GameBoy::RunMCycle()
+{
+    for (uint_fast8_t i = 0; i < 4; ++i)
+    {
+        switch (i)
+        {
+            case 0:
+            {
+                if (gdmaInProgress_)
+                {
+                    ClockVramGDMA();
+                }
+                else if (hdmaInProgress_ && (hdmaBytesRemaining_ > 0))
+                {
+                    ClockVramHDMA();
+                }
+                else
+                {
+                    if (cpu_.Clock(CheckPendingInterrupts()))
+                    {
+                        AcknowledgeInterrupt();
+                    }
+                }
+
+                if (serialTransferInProgress_)
+                {
+                    ClockSerialTransfer();
+                }
+
+                if (oamDmaInProgress_)
+                {
+                    ClockOamDma();
+                }
+
+                ClockTimer();
+                ppu_.Clock(oamDmaInProgress_);
+                break;
+            }
+            case 1:
+                ppu_.Clock(oamDmaInProgress_);
+                break;
+            case 2:
+                ppu_.Clock(oamDmaInProgress_);
+                break;
+            case 3:
+            {
+                ppu_.Clock(oamDmaInProgress_);
+
+                if (hdmaInProgress_ && (ppu_.GetMode() == 0) && (ioReg_[IO::LY] != hdmaLy_) && (hdmaBytesRemaining_ == 0))
+                {
+                    hdmaBytesRemaining_ = 0x10;
+                    hdmaLy_ = ioReg_[IO::LY];
+                }
+                break;
+            }
+        }
+    }
+}
+
 void GameBoy::ClockTimer()
 {
     ++divCounter_;
@@ -423,6 +469,75 @@ void GameBoy::ClockOamDma()
     }
 }
 
+void GameBoy::ClockVramGDMA()
+{
+    uint_fast8_t xferByte = Read(vramDmaSrcAddr_++);
+    Write(vramDmaDestAddr_++, xferByte);
+
+    if (vramDmaDestAddr_ > 0x9FFF)
+    {
+        gdmaInProgress_ = false;
+        ioReg_[IO::HDMA5] = 0xFF;
+        return;
+    }
+
+    --gdmaBytesRemaining_;
+    xferByte = Read(vramDmaSrcAddr_++);
+    Write(vramDmaDestAddr_++, xferByte);
+
+    if (vramDmaDestAddr_ > 0x9FFF)
+    {
+        gdmaInProgress_ = false;
+        ioReg_[IO::HDMA5] = 0xFF;
+        return;
+    }
+
+    --gdmaBytesRemaining_;
+
+    if (gdmaBytesRemaining_ == 0)
+    {
+        gdmaInProgress_ = false;
+        ioReg_[IO::HDMA5] = 0xFF;
+    }
+}
+
+void GameBoy::ClockVramHDMA()
+{
+    uint_fast8_t xferByte = Read(vramDmaSrcAddr_++);
+    Write(vramDmaDestAddr_++, xferByte);
+
+    if (vramDmaDestAddr_ > 0x9FFF)
+    {
+        hdmaInProgress_ = false;
+        ioReg_[IO::HDMA5] = 0xFF;
+        return;
+    }
+
+    --hdmaBytesRemaining_;
+    xferByte = Read(vramDmaSrcAddr_++);
+    Write(vramDmaDestAddr_++, xferByte);
+
+    if (vramDmaDestAddr_ > 0x9FFF)
+    {
+        hdmaInProgress_ = false;
+        ioReg_[IO::HDMA5] = 0xFF;
+        return;
+    }
+
+    --hdmaBytesRemaining_;
+
+    if (hdmaBytesRemaining_ == 0)
+    {
+        --hdmaBlocksRemaining_;
+
+        if (hdmaBlocksRemaining_ == 0)
+        {
+            hdmaInProgress_ = false;
+            ioReg_[IO::HDMA5] = 0xFF;
+        }
+    }
+}
+
 void GameBoy::ClockSerialTransfer()
 {
     serialOutData_ <<= 1;
@@ -447,7 +562,7 @@ std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
 {
     CheckVBlankInterrupt();
     CheckStatInterrupt();
-    uint8_t pendingInterrupts = ioReg_[IO::IF] & IE_;
+    uint8_t pendingInterrupts = ioReg_[IO::IF] & (IE_ & 0x0F);
 
     if (pendingInterrupts != 0x00)
     {
@@ -686,6 +801,17 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
 {
     switch (addr & 0xFF)
     {
+        case IO::STAT:  // LCD Status
+            return (ioReg_[IO::STAT] | 0x80);
+        case IO::KEY1:
+            return 0xFF;
+        case IO::VBK:  // VRAM bank
+            return (ioReg_[IO::VBK] | 0xFE);
+        case IO::HDMA1:
+        case IO::HDMA2:
+        case IO::HDMA3:
+        case IO::HDMA4:
+            return 0xFF;
         case IO::BCPD:  // Background color palette data
             if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
             {
@@ -700,8 +826,8 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
             }
 
             return OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F];
-        case IO::KEY1:
-            return 0xFF;
+        case IO::SVBK:  // WRAM bank
+            return (ioReg_[IO::SVBK] | 0xF8);
         default:
             break;
     }
@@ -736,15 +862,20 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             IoWriteTAC(data);
             break;
         }
-        case IO::STAT:  // STAT register
+        case IO::STAT:  // LCD Status
         {
             data &= 0x78;
             ioReg_[IO::STAT] &= 0x07;
             ioReg_[IO::STAT] |= data;
             break;
         }
+        case IO::LY:  // LCD Y Coordinate
+            break;
         case IO::DMA:  // OAM DMA source address
             IoWriteDMA(data);
+            break;
+        case IO::HDMA5:  // VRAM DMA length/mode/start
+            IoWriteVramDMA(data);
             break;
         case IO::BCPD:  // Background color palette data
             IoWriteBCPD(data);
@@ -810,10 +941,43 @@ void GameBoy::IoWriteDMA(uint8_t data)
     oamIndexDest_ = 0;
 }
 
+void GameBoy::IoWriteVramDMA(uint8_t data)
+{
+    if (hdmaInProgress_)
+    {
+        if ((data & 0x80) == 0x00)
+        {
+            hdmaInProgress_ = false;
+            ioReg_[IO::HDMA5] = (0x80 | (hdmaBlocksRemaining_ - 1));
+        }
+
+        return;
+    }
+
+    vramDmaSrcAddr_ = ((ioReg_[IO::HDMA1] << 8) | ioReg_[IO::HDMA2]) & 0xFFF0;
+    vramDmaDestAddr_ = 0x8000 | (((ioReg_[IO::HDMA3] << 8) | ioReg_[IO::HDMA4]) & 0x1FF0);
+
+    if (data & 0x80)
+    {
+        hdmaInProgress_ = true;
+    }
+    else
+    {
+        gdmaInProgress_ = true;
+    }
+
+    hdmaBlocksRemaining_ = (data & 0x7F) + 1;
+    gdmaBytesRemaining_ = hdmaBlocksRemaining_ * 0x10;
+}
+
 void GameBoy::IoWriteBCPD(uint8_t data)
 {
     if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
     {
+        if (ioReg_[IO::BCPS] & 0x80)
+        {
+            ioReg_[IO::BCPS] = (ioReg_[IO::BCPS] & 0xC0) | ((ioReg_[IO::BCPS] + 1) & 0x3F);
+        }
         return;
     }
 
@@ -829,6 +993,11 @@ void GameBoy::IoWriteOCPD(uint8_t data)
 {
     if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
     {
+        if (ioReg_[IO::OCPS] & 0x80)
+        {
+            ioReg_[IO::OCPS] = (ioReg_[IO::OCPS] & 0xC0) | ((ioReg_[IO::OCPS] + 1) & 0x3F);
+        }
+
         return;
     }
 
