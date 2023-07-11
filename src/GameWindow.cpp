@@ -1,4 +1,5 @@
 #include <GameWindow.hpp>
+#include <Controller.hpp>
 #include <GameBoy.hpp>
 #include <SDL2/SDL.h>
 #include <cstdint>
@@ -34,13 +35,13 @@ void GameWindow::Run()
             }
         }
 
+        gameBoyPtr_->SetInputs(GetButtons());
         gameBoyPtr_->Run();
         uint64_t frameTicks = SDL_GetTicks64() - startTime;
 
         if (frameTicks < TICKS_PER_FRAME)
         {
-            // SDL_Delay(TICKS_PER_FRAME - frameTicks);
-            SDL_Delay(1);
+            SDL_Delay(TICKS_PER_FRAME - frameTicks);
         }
 
         UpdateScreen();

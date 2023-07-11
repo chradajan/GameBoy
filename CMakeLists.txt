@@ -5,7 +5,7 @@ project (GameBoy
 )
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -DPRINT_SERIAL -g")
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -O2")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR})
 
 find_package(SDL2 REQUIRED)
@@ -13,6 +13,7 @@ find_package(SDL2 REQUIRED)
 set(SOURCES
     src/Cartridge/MBC0.cpp
     src/Cartridge/MBC1.cpp
+    src/Controller.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp
     src/GameBoy.cpp

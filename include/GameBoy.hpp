@@ -3,6 +3,7 @@
 #include <Cartridge/Cartridge.hpp>
 #include <Cartridge/MBC0.hpp>
 #include <Cartridge/MBC1.hpp>
+#include <Controller.hpp>
 #include <CPU.hpp>
 #include <PPU.hpp>
 #include <array>
@@ -30,6 +31,8 @@ public:
     void InsertCartridge(fs::path romPath);
 
     bool FrameReady();
+
+    void SetInputs(Buttons const& buttons);
 
 private:
     /// @brief Clock the timer components.
@@ -131,5 +134,6 @@ private:
     PPU ppu_;
     std::unique_ptr<Cartridge> cartridge_;
 
-    void PrintBackgroundMap();
+    // Controller
+    std::function<Buttons()> GetKeys;
 };

@@ -1,4 +1,5 @@
 #include <GameBoy.hpp>
+#include <Controller.hpp>
 #include <Paths.hpp>
 #include <array>
 #include <functional>
@@ -314,6 +315,68 @@ void GameBoy::InsertCartridge(fs::path romPath)
 bool GameBoy::FrameReady()
 {
     return ppu_.FrameReady();
+}
+
+void GameBoy::SetInputs(Buttons const& buttons)
+{
+    uint_fast8_t prevState = ioReg_[IO::JOYP] & 0x0F;
+    bool const actionSelect = ((ioReg_[IO::JOYP] & 0x20) == 0);
+    bool const directionSelect = ((ioReg_[IO::JOYP] & 0x10) == 0);
+    ioReg_[IO::JOYP] |= 0x0F;
+
+    if (actionSelect)
+    {
+        if (buttons.start)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x08) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x07;
+        }
+
+        if (buttons.select)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x04) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0B;
+        }
+
+        if (buttons.b)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x02) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0D;
+        }
+
+        if (buttons.a)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x01) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0E;
+        }
+    }
+
+    if (directionSelect)
+    {
+        if (buttons.down)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x08) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x07;
+        }
+
+        if (buttons.up)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x04) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0B;
+        }
+
+        if (buttons.left)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x02) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0D;
+        }
+
+        if (buttons.right)
+        {
+            ioReg_[IO::IF] |= (prevState & 0x01) ? INT_SRC::JOYPAD : 0x00;
+            ioReg_[IO::JOYP] &= 0x0E;
+        }
+    }
 }
 
 void GameBoy::ClockTimer()
@@ -650,6 +713,10 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
 {
     switch (addr & 0xFF)
     {
+        case IO::JOYP:
+            ioReg_[IO::JOYP] = (0xC0 | (data & 0x30));
+            SetInputs(GetButtons());
+            break;
         case IO::SC:  // Serial transfer control
             ioReg_[IO::SC] = data;
             serialTransferInProgress_ = (data & 0x80) == 0x80;
