@@ -21,17 +21,22 @@ GameWindow::~GameWindow()
 void GameWindow::Run()
 {
     bool quit = false;
-    SDL_Event e;
+    SDL_Event event;
 
     while (!quit)
     {
         uint64_t startTime = SDL_GetTicks64();
 
-        while (SDL_PollEvent(&e) != 0)
+        while (SDL_PollEvent(&event) != 0)
         {
-            if (e.type == SDL_QUIT)
+            if (event.type == SDL_QUIT)
             {
                 quit = true;
+            }
+            else if (event.type == SDL_DROPFILE)
+            {
+                gameBoyPtr_->InsertCartridge(event.drop.file);
+                gameBoyPtr_->PowerOn();
             }
         }
 

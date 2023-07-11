@@ -89,6 +89,10 @@ void GameBoy::Reset()
         ioReg_[IO::HDMA5] = 0xFF;
         ioReg_[IO::SVBK] = 0xFF;
     }
+    else
+    {
+        ioReg_.fill(0x00);
+    }
 
     serialOutData_ = 0x00;
     serialBitsSent_ = 0;
@@ -118,6 +122,7 @@ void GameBoy::Reset()
     prevStatState_ = false;
 
     cpu_.Reset(runningBootRom_);
+    ppu_.Reset();
 }
 
 void GameBoy::InsertCartridge(fs::path romPath)

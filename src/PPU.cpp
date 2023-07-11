@@ -104,7 +104,6 @@ void PPU::Reset()
     frameReady_ = false;
     vBlank_ = false;
     wyCondition_ = false;
-    useDmgColors_ = false;
     currentSprites_.clear();
     SetMode(2);
 }
