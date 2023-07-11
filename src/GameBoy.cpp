@@ -196,7 +196,7 @@ void GameBoy::Reset()
     ioReg_[IO::LCDC] = 0x91;
     ioReg_[IO::BGP] = 0xFC;
     ioReg_[IO::KEY1] = 0xFF;
-    ioReg_[IO::VBK] = 0x00;
+    ioReg_[IO::VBK] = 0xFF;
     ioReg_[IO::HDMA1] = 0xFF;
     ioReg_[IO::HDMA2] = 0xFF;
     ioReg_[IO::HDMA3] = 0xFF;
@@ -562,7 +562,7 @@ std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
 {
     CheckVBlankInterrupt();
     CheckStatInterrupt();
-    uint8_t pendingInterrupts = ioReg_[IO::IF] & (IE_ & 0x0F);
+    uint8_t pendingInterrupts = ioReg_[IO::IF] & (IE_ & 0x1F);
 
     if (pendingInterrupts != 0x00)
     {
@@ -672,7 +672,8 @@ uint8_t GameBoy::Read(uint16_t addr)
             return 0xFF;
         }
 
-        return VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000];
+        uint_fast8_t vramBank = cgbMode_ ? (ioReg_[IO::VBK] & 0x01) : 0;
+        return VRAM_[vramBank][addr - 0x8000];
     }
     else if (addr < 0xC000)
     {
@@ -743,7 +744,8 @@ void GameBoy::Write(uint16_t addr, uint8_t data)
             return;
         }
 
-        VRAM_[ioReg_[IO::VBK] & 0x01][addr - 0x8000] = data;
+        uint_fast8_t vramBank = cgbMode_ ? (ioReg_[IO::VBK] & 0x01) : 0;
+        VRAM_[vramBank][addr - 0x8000] = data;
     }
     else if (addr < 0xC000)
     {
