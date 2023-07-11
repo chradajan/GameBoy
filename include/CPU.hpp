@@ -32,9 +32,9 @@ public:
     /// @return Whether this clock cycle acknowledged an interrupt.
     bool Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo);
 
-
     /// @brief Reset the state of the CPU to as if it just started.
-    void Reset();
+    /// @param bootRom Used to decided where to set PC.
+    void Reset(bool bootRom);
 
 private:
     /// @brief Wrapper for Read function.

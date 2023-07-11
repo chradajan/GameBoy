@@ -1,6 +1,11 @@
 #include <GameBoy.hpp>
+#include <Cartridge/Cartridge.hpp>
+#include <Cartridge/MBC0.hpp>
+#include <Cartridge/MBC1.hpp>
+#include <Cartridge/MBC5.hpp>
 #include <Controller.hpp>
 #include <Paths.hpp>
+#include <algorithm>
 #include <array>
 #include <functional>
 #include <iostream>
@@ -20,7 +25,7 @@ GameBoy::GameBoy(uint8_t* const frameBuffer) :
 
 void GameBoy::Run()
 {
-    if (!cartridge_)
+    if (!cartridge_ && !runningBootRom_)
     {
         return;
     }
@@ -33,56 +38,57 @@ void GameBoy::Run()
 
 void GameBoy::Reset()
 {
-    for (auto& bank : VRAM_)
+    if (!runningBootRom_)
     {
-        bank.fill(0x00);
+        for (auto& bank : VRAM_)
+        {
+            bank.fill(0x00);
+        }
+
+        for (auto& bank : WRAM_)
+        {
+            bank.fill(0x00);
+        }
+
+        OAM_.fill(0x00);
+        HRAM_.fill(0x00);
+        BG_CRAM_.fill(0x00);
+        OBJ_CRAM_.fill(0x00);
+
+        ioReg_.fill(0x00);
+        ioReg_[IO::JOYP] = 0xCF;
+        ioReg_[IO::SC] = 0x7F;
+        ioReg_[IO::TAC] = 0xF8;
+        ioReg_[IO::IF] = 0xE1;
+        ioReg_[IO::NR10] = 0x80;
+        ioReg_[IO::NR11] = 0xBF;
+        ioReg_[IO::NR12] = 0xF3;
+        ioReg_[IO::NR13] = 0xFF;
+        ioReg_[IO::NR14] = 0xBF;
+        ioReg_[IO::NR21] = 0x3F;
+        ioReg_[IO::NR23] = 0xFF;
+        ioReg_[IO::NR24] = 0xBF;
+        ioReg_[IO::NR30] = 0x7F;
+        ioReg_[IO::NR31] = 0xFF;
+        ioReg_[IO::NR32] = 0x9F;
+        ioReg_[IO::NR33] = 0xFF;
+        ioReg_[IO::NR34] = 0xBF;
+        ioReg_[IO::NR41] = 0xFF;
+        ioReg_[IO::NR44] = 0xBF;
+        ioReg_[IO::NR50] = 0x77;
+        ioReg_[IO::NR51] = 0xF3;
+        ioReg_[IO::NR52] = 0xF1;
+        ioReg_[IO::LCDC] = 0x91;
+        ioReg_[IO::BGP] = 0xFC;
+        ioReg_[IO::KEY1] = 0xFF;
+        ioReg_[IO::VBK] = 0xFF;
+        ioReg_[IO::HDMA1] = 0xFF;
+        ioReg_[IO::HDMA2] = 0xFF;
+        ioReg_[IO::HDMA3] = 0xFF;
+        ioReg_[IO::HDMA4] = 0xFF;
+        ioReg_[IO::HDMA5] = 0xFF;
+        ioReg_[IO::SVBK] = 0xFF;
     }
-
-    for (auto& bank : WRAM_)
-    {
-        bank.fill(0x00);
-    }
-
-    OAM_.fill(0x00);
-    HRAM_.fill(0x00);
-    BG_CRAM_.fill(0x00);
-    OBJ_CRAM_.fill(0x00);
-
-    ioReg_.fill(0x00);
-    ioReg_[IO::JOYP] = 0xCF;
-    ioReg_[IO::SC] = 0x7F;
-    ioReg_[IO::TAC] = 0xF8;
-    ioReg_[IO::IF] = 0xE1;
-    ioReg_[IO::NR10] = 0x80;
-    ioReg_[IO::NR11] = 0xBF;
-    ioReg_[IO::NR12] = 0xF3;
-    ioReg_[IO::NR13] = 0xFF;
-    ioReg_[IO::NR14] = 0xBF;
-    ioReg_[IO::NR21] = 0x3F;
-    ioReg_[IO::NR23] = 0xFF;
-    ioReg_[IO::NR24] = 0xBF;
-    ioReg_[IO::NR30] = 0x7F;
-    ioReg_[IO::NR31] = 0xFF;
-    ioReg_[IO::NR32] = 0x9F;
-    ioReg_[IO::NR33] = 0xFF;
-    ioReg_[IO::NR34] = 0xBF;
-    ioReg_[IO::NR41] = 0xFF;
-    ioReg_[IO::NR44] = 0xBF;
-    ioReg_[IO::NR50] = 0x77;
-    ioReg_[IO::NR51] = 0xF3;
-    ioReg_[IO::NR52] = 0xF1;
-    ioReg_[IO::LCDC] = 0x91;
-    ioReg_[IO::BGP] = 0xFC;
-    ioReg_[IO::KEY1] = 0xFF;
-    ioReg_[IO::VBK] = 0xFF;
-    ioReg_[IO::HDMA1] = 0xFF;
-    ioReg_[IO::HDMA2] = 0xFF;
-    ioReg_[IO::HDMA3] = 0xFF;
-    ioReg_[IO::HDMA4] = 0xFF;
-    ioReg_[IO::HDMA5] = 0xFF;
-    ioReg_[IO::SVBK] = 0xFF;
-
-    cgbMode_ = false;
 
     serialOutData_ = 0x00;
     serialBitsSent_ = 0;
@@ -111,7 +117,7 @@ void GameBoy::Reset()
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
 
-    cpu_.Reset();
+    cpu_.Reset(runningBootRom_);
 }
 
 void GameBoy::InsertCartridge(fs::path romPath)
@@ -121,16 +127,14 @@ void GameBoy::InsertCartridge(fs::path romPath)
         cartridge_.reset();
     }
 
-    Reset();
-
     std::array<uint8_t, 0x4000> bank0;
     std::ifstream rom(romPath, std::ios::binary);
-    rom.read((char*)bank0.data(), sizeof(bank0[0]) * bank0.size());
+    rom.read(reinterpret_cast<char*>(bank0.data()), sizeof(bank0[0]) * bank0.size());
     uint8_t cartridgeType = bank0[0x0147];
-    cgbMode_ = (bank0[0x143] & 0x80) == 0x80;
+    cgbCartridge_ = (bank0[0x143] & 0x80) == 0x80;
 
-    uint8_t titleLength = cgbMode_ ? 15 : 16;
-    std::string title((char*)&bank0[0x0134], titleLength);
+    uint8_t titleLength = cgbCartridge_ ? 15 : 16;
+    std::string title(reinterpret_cast<char*>(&bank0[0x0134]), titleLength);
     fs::path savePath = SAVE_PATH.string() + title + ".sav";
 
     uint16_t romBanks = 2 << bank0[0x0148];
@@ -171,10 +175,35 @@ void GameBoy::InsertCartridge(fs::path romPath)
         case 0x03:
             cartridge_ = std::make_unique<MBC1>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
             break;
+        case 0x19 ... 0x1E:
+            cartridge_ = std::make_unique<MBC5>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
+            break;
         default:
             cartridge_ = nullptr;
             break;
     }
+}
+
+void GameBoy::PowerOn()
+{
+    cgbMode_ = true;
+
+    std::ifstream bootROM(BOOT_ROM_PATH, std::ios::binary);
+
+    if (bootROM.fail())
+    {
+        runningBootRom_ = false;
+        cgbMode_ = cgbCartridge_;
+        ppu_.SetDmgColorMode(true);
+    }
+    else
+    {
+        bootROM.read(reinterpret_cast<char*>(BOOT_ROM.data()), BOOT_ROM.size());
+        runningBootRom_ = true;
+        ppu_.SetDmgColorMode(false);
+    }
+
+    Reset();
 }
 
 bool GameBoy::FrameReady()

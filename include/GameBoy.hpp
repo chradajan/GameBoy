@@ -1,8 +1,6 @@
 #pragma once
 
 #include <Cartridge/Cartridge.hpp>
-#include <Cartridge/MBC0.hpp>
-#include <Cartridge/MBC1.hpp>
 #include <Controller.hpp>
 #include <CPU.hpp>
 #include <PPU.hpp>
@@ -89,7 +87,7 @@ enum : uint8_t
     VBK = 0x4F, // VRAM bank (CGB mode only)
 
     // Boot ROM
-    BANK = 0x50, // Boot ROM disable
+    UNMAP_BOOT_ROM = 0x50, // Boot ROM disable
 
     // VRAM DMA
     HDMA1 = 0x51, // VRAM DMA source high (CGB mode only)
@@ -151,6 +149,8 @@ public:
     /// @brief Load cartridge data from gb ROM.
     /// @param romPath Path to gb ROM file.
     void InsertCartridge(fs::path romPath);
+
+    void PowerOn();
 
     bool FrameReady();
 
@@ -219,6 +219,7 @@ private:
     std::array<uint8_t, 0x7F> HRAM_;  // $FF80 ... $FFFE
     std::array<uint8_t, 0x40> BG_CRAM_;  // Background palette data accessed through BCPS/BCPD
     std::array<uint8_t, 0x40> OBJ_CRAM_;  // OBJ palette data accessed through OCPS/OCPD
+    std::array<uint8_t, 0x900> BOOT_ROM;  // Boot ROM
 
     // I/O Registers
     std::array<uint8_t, 0x78> ioReg_;
@@ -226,6 +227,8 @@ private:
 
     // Mode
     bool cgbMode_;
+    bool cgbCartridge_;
+    bool runningBootRom_;
 
     // Serial transfer
     uint8_t serialOutData_;

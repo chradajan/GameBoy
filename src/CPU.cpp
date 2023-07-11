@@ -10,8 +10,6 @@
 CPU::CPU(std::function<uint8_t(uint16_t)> readFunction, std::function<void(uint16_t, uint8_t)> writeFunction) :
     Read(readFunction), Write(writeFunction)
 {
-    Reset();
-
     #ifdef LOG
         InitializeLogging();
     #endif
@@ -93,7 +91,7 @@ bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
     return interruptAcknowledged;
 }
 
-void CPU::Reset()
+void CPU::Reset(bool const bootRom)
 {
     reg_.Reset();
     opCode_ = 0x00;
@@ -112,6 +110,11 @@ void CPU::Reset()
     halted_ = false;
     haltBug_ = false;
     numPendingInterrupts_ = 0x00;
+
+    if (bootRom)
+    {
+        reg_.PC = 0x0000;
+    }
 }
 
 uint8_t CPU::ReadPC()

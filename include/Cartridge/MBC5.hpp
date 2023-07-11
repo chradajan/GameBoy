@@ -8,16 +8,17 @@
 
 namespace fs = std::filesystem;
 
-class MBC1 : public virtual Cartridge
+class MBC5 : public virtual Cartridge
 {
 public:
-    MBC1(std::array<uint8_t, 0x4000> const& bank0,
+    MBC5(std::array<uint8_t, 0x4000> const& bank0,
          std::ifstream& rom,
          fs::path savePath,
          uint8_t cartridgeType,
          uint16_t romBanks,
          uint8_t ramBanks);
-    ~MBC1();
+
+    ~MBC5();
 
     void Reset() override;
 
@@ -28,18 +29,18 @@ public:
     void WriteRAM(uint16_t addr, uint8_t data) override;
 
 private:
+    // Memory
     std::vector<std::array<uint8_t, 0x4000>> ROM_;
     std::vector<std::array<uint8_t, 0x2000>> RAM_;
 
+    // Cart info
+    uint16_t romBankCount_;
+    uint8_t ramBankCount_;
+    uint16_t romBankIndex_;
+
     // Registers
     bool ramEnabled_;
-    uint8_t romBank_;
-    uint8_t romBankMask_;
-    uint16_t romBankCount_;
-
+    uint8_t romBankLsb_;
+    uint8_t romBankMsb_;
     uint8_t ramBank_;
-    uint8_t ramBankCount_;
-
-    bool advancedBankMode_;
-    bool largeCart_;
 };

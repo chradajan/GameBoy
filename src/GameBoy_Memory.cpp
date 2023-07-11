@@ -4,6 +4,23 @@ uint8_t GameBoy::Read(uint16_t addr)
 {
     if (addr < 0x8000)
     {
+        if (runningBootRom_)
+        {
+            if ((addr < 0x0100) || ((addr >= 0x0200) && (addr < 0x0900)))
+            {
+                return BOOT_ROM[addr];
+            }
+            else
+            {
+                if (cartridge_)
+                {
+                    return cartridge_->ReadROM(addr);
+                }
+
+                return 0xFF;
+            }
+        }
+
         // Cartridge ROM
         return cartridge_->ReadROM(addr);
     }
@@ -218,6 +235,10 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             break;
         case IO::DMA:  // OAM DMA source address
             IoWriteDMA(data);
+            break;
+        case IO::UNMAP_BOOT_ROM:  // Boot ROM disable
+            runningBootRom_ = false;
+            cgbMode_ = cgbCartridge_;
             break;
         case IO::HDMA5:  // VRAM DMA length/mode/start
             IoWriteVramDMA(data);

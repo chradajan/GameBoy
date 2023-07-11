@@ -104,6 +104,7 @@ void PPU::Reset()
     frameReady_ = false;
     vBlank_ = false;
     wyCondition_ = false;
+    useDmgColors_ = false;
     currentSprites_.clear();
     SetMode(2);
 }
@@ -203,7 +204,7 @@ void PPU::RenderPixel(Pixel pixel)
             frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
         }
     }
-    else
+    else if (useDmgColors_)
     {
         if (!LCDEnabled())
         {
@@ -231,6 +232,46 @@ void PPU::RenderPixel(Pixel pixel)
             frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][0];
             frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][1];
             frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][2];
+        }
+    }
+    else
+    {
+        if (!LCDEnabled() || (pixel.src == PixelSource::BLANK))
+        {
+            frameBuffer_[framePointer_++] = 255;
+            frameBuffer_[framePointer_++] = 255;
+            frameBuffer_[framePointer_++] = 255;
+        }
+        else
+        {
+            uint_fast8_t lsb = 0x00;
+            uint_fast8_t msb = 0x00;
+
+            if (pixel.src == PixelSource::BACKGROUND)
+            {
+                uint_fast8_t colorIndex = ((palette_.BGP >> (pixel.color * 2)) & 0x03) * 2;
+                lsb = palette_.BG_CRAM[colorIndex];
+                msb = palette_.BG_CRAM[colorIndex + 1];
+            }
+            else
+            {
+                uint_fast8_t palette = pixel.palette ? palette_.OBP1 : palette_.OBP0;
+                uint_fast8_t color = ((palette >> (pixel.color * 2)) & 0x03) * 2;
+                uint_fast8_t colorIndex = color + (pixel.palette ? 8 : 0);
+                lsb = palette_.OBJ_CRAM[colorIndex];
+                msb = palette_.OBJ_CRAM[colorIndex + 1];
+            }
+
+            uint_fast16_t rgb555 = (msb << 8) | lsb;
+
+            uint_fast8_t r = rgb555 & 0x001F;
+            frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
+
+            uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
+            frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
+
+            uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
+            frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
         }
     }
 }

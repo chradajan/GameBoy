@@ -13,6 +13,7 @@ find_package(SDL2 REQUIRED)
 set(SOURCES
     src/Cartridge/MBC0.cpp
     src/Cartridge/MBC1.cpp
+    src/Cartridge/MBC5.cpp
     src/Controller.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp

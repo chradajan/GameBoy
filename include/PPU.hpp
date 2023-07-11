@@ -52,6 +52,8 @@ public:
 
     uint8_t GetMode() const { return reg_.STAT & 0x03; }
 
+    void SetDmgColorMode(bool useDmgColors) { useDmgColors_ = useDmgColors; }
+
     // LCDC flags
     bool LCDEnabled() const { return reg_.LCDC & 0x80; }
     uint16_t WindowTileMapBaseAddr() const { return (reg_.LCDC & 0x40) ? 0x9C00 : 0x9800; }
@@ -98,6 +100,7 @@ private:
     bool frameReady_;
     bool vBlank_;
     bool wyCondition_;
+    bool useDmgColors_;
 
     std::vector<OamEntry> currentSprites_;
 
