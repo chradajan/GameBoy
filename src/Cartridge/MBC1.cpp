@@ -92,12 +92,7 @@ uint8_t MBC1::ReadROM(uint16_t addr)
         if (advancedBankMode_ && largeCart_)
         {
             uint_fast8_t bank = ramBank_ * 0x20;
-
-            if (bank > romBankCount_)
-            {
-                bank = romBankCount_ - 1;
-            }
-
+            bank %= romBankCount_;
             return ROM_[bank][addr];
         }
         else
@@ -113,12 +108,7 @@ uint8_t MBC1::ReadROM(uint16_t addr)
         {
             uint_fast16_t fullAddr = (ramBank_ << 19) | (romBank_ << 9) | addr;
             uint_fast16_t bank = fullAddr / 0x4000;
-
-            if (bank > romBankCount_)
-            {
-                bank = romBankCount_ - 1;
-            }
-
+            bank %= romBankCount_;
             return ROM_[bank][addr];
         }
         else
