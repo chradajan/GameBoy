@@ -17,6 +17,8 @@ set(SOURCES
     src/CPU.cpp
     src/CPU_Instructions.cpp
     src/GameBoy.cpp
+    src/GameBoy_Clocks.cpp
+    src/GameBoy_Memory.cpp
     src/GameWindow.cpp
     src/PixelFIFO.cpp
     src/PPU.cpp

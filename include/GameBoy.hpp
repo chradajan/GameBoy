@@ -13,6 +13,128 @@
 #include <optional>
 #include <utility>
 
+namespace IO
+{
+/// @brief Enum of I/O Register addresses. Only use lower byte since upper byte is 0xFF for all addresses.
+enum : uint8_t
+{
+    // Joypad
+    JOYP = 0x00, // Joypad input
+
+    // Serial transfer
+    SB = 0x01, // Serial transfer data
+    SC = 0x02, // Serial transfer control
+
+    // Timer
+    DIV = 0x04,  // Divider register
+    TIMA = 0x05, // Timer counter
+    TMA = 0x06,  // Timer modulo
+    TAC = 0x07,  // Timer control
+
+    // Interrupts
+    IF = 0x0F, // Interrupt flag
+
+    // Sound
+    NR10 = 0x10, // Sound channel 1 sweep
+    NR11 = 0x11, // Sound channel 1 length timer & duty cycle
+    NR12 = 0x12, // Sound channel 1 volume & envelope
+    NR13 = 0x13, // Sound channel 1 period low
+    NR14 = 0x14, // Sound channel 1 period high & sound control
+
+    NR21 = 0x16, // Sound channel 2 length timer & duty cycle
+    NR22 = 0x17, // Sound channel 2 volume & envelope
+    NR23 = 0x18, // Sound channel 2 period low
+    NR24 = 0x19, // Sound channel 2 period high & control
+
+    NR30 = 0x1A, // Sound channel 3 DAC enable
+    NR31 = 0x1B, // Sound channel 3 length timer
+    NR32 = 0x1C, // Sound channel 3 output level
+    NR33 = 0x1D, // Sound channel 3 period low
+    NR34 = 0x1E, // Sound channel 3 period high & control
+
+    NR41 = 0x20, // Sound channel 4 length timer
+    NR42 = 0x21, // Sound channel 4 volume & envelope
+    NR43 = 0x22, // Sound channel 4 frequency & randomness
+    NR44 = 0x23, // Sound channel 4 control
+
+    NR50 = 0x24, // Master volume & VIN panning
+    NR51 = 0x25, // Sound panning
+    NR52 = 0x26, // Sound on/off
+
+    WAVE_RAM_START = 0x30, // First index of Wave RAM
+    WAVE_RAM_END = 0x3F,   // Last index of Wave RAM
+
+    // LCD
+    LCDC = 0x40, // LCD control
+    STAT = 0x41, // LCD status
+    SCY = 0x42,  // Viewport Y position
+    SCX = 0x43,  // Viewport X position
+    LY = 0x44,   // LCD Y coordinate
+    LYC = 0x45,  // LY compare
+
+    // OAM
+    DMA = 0x46, // OAM DMA source address
+
+    // LCD
+    BGP = 0x47,  // BG palette data (Non-CGB mode only)
+    OBP0 = 0x48, // OBJ palette 0 data (Non-CGB mode only)
+    OBP1 = 0x49, // OBJ palette 1 data (Non-CGB mode only)
+    WY = 0x4A,   // Window y position
+    WX = 0x4B,   // Window x position
+
+    // Speed switch
+    KEY1 = 0x4D, // Prepare speed switch (CGB mode only)
+
+    // VRAM
+    VBK = 0x4F, // VRAM bank (CGB mode only)
+
+    // Boot ROM
+    BANK = 0x50, // Boot ROM disable
+
+    // VRAM DMA
+    HDMA1 = 0x51, // VRAM DMA source high (CGB mode only)
+    HDMA2 = 0x52, // VRAM DMA source low (CGB mode only)
+    HDMA3 = 0x53, // VRAM DMA destination high (CGB mode only)
+    HDMA4 = 0x54, // VRAM DMA destination low (CGB mode only)
+    HDMA5 = 0x55, // VRAM DMA length/mode/start (CGB mode only)
+
+    // Infrared
+    RP = 0x56, // Infrared communication port (CGB mode only)
+
+    // LCD
+    BCPS = 0x68, // Background color palette specification (CGB mode only)
+    BCPD = 0x69, // Background color palette data (CGB mode only)
+
+    OCPS = 0x6A, // OBJ color palette specification (CGB mode only)
+    OCPD = 0x6B, // OBJ color palette data (CGB mode only)
+    OPRI = 0x6C, // OBJ priority mode (CGB mode only)
+
+    // WRAM
+    SVBK = 0x70, // WRAM bank
+
+    // Undocumented
+    ff72 = 0x72,  // Fully readable/writable (CGB mode only)
+    ff73 = 0x73,  // Fully readable/writable (CGB mode only)
+    ff74 = 0x74,  // Fully readable/writable (CGB mode only)
+    ff75 = 0x75,  // Bits 4, 5, and 6 are readable/writable (CGB mode only)
+    PCM12 = 0x76, // Copies sound channel 1 and 2's PCM amplitudes
+    PCM34 = 0x77, // Copies sound channel 3 and 4's PCM amplitudes
+};
+}  // namespace IO_REG
+
+namespace INT_SRC
+{
+/// @brief Enum of interrupt source masks.
+enum : uint8_t
+{
+    VBLANK = 0x01,
+    LCD_STAT = 0x02,
+    TIMER = 0x04,
+    SERIAL = 0x08,
+    JOYPAD = 0x10,
+};
+}  // namespace INT_SRC
+
 class GameBoy
 {
 public:
