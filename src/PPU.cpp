@@ -39,13 +39,15 @@ void PPU::Clock(bool const oamDmaInProgress)
                 disabledDots_ = 0;
             }
         }
+
+        return;
     }
 
     ++dot_;
 
     if (dot_ == 457)
     {
-        dot_ = 1;
+        dot_ = 0;
         ++reg_.LY;
 
         if (pixelFifoPtr_->WindowVisible())
@@ -83,7 +85,6 @@ void PPU::Clock(bool const oamDmaInProgress)
         if (dot_ == 80)
         {
             OamScan(oamDmaInProgress);
-            LX_ = 0;
         }
         else if (dot_ == 81)
         {
@@ -91,13 +92,14 @@ void PPU::Clock(bool const oamDmaInProgress)
         }
         else if (LX_ == 160)
         {
+            LX_ = 0;
             SetMode(0);
         }
     }
 
     SetLYC();
 
-    if (GetMode() == 3)
+    if ((GetMode() == 3) && (dot_ > 84))
     {
         auto pixel = pixelFifoPtr_->Clock();
 
