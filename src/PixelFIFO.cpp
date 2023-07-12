@@ -136,7 +136,7 @@ bool PixelFIFO::SwitchToWindow() const
             ppuPtr_->WindowEnabled() &&
             (ppuPtr_->cgbMode_ || (!ppuPtr_->cgbMode_ && ppuPtr_->WindowAndBackgroundEnabled())) &&
             ppuPtr_->wyCondition_ &&
-            (ppuPtr_->LX_ == ppuPtr_->reg_.WX - 7));
+            (ppuPtr_->LX_ + 7 >= ppuPtr_->reg_.WX));
 }
 
 void PixelFIFO::ClockSpriteFetcher()
@@ -272,7 +272,8 @@ void PixelFIFO::ClockBackgroundFetcher()
             if (fetchingWindow_)
             {
                 backgroundFetcher_.tileAddr = ppuPtr_->WindowTileMapBaseAddr();
-                fetcherX_ = (fifoState_ == FifoState::SWITCHING_TO_WINDOW) ? 0 : (fetcherX_ + 1) % 32;
+                fetcherX_ = ((fifoState_ == FifoState::SWITCHING_TO_WINDOW) ||
+                             (fifoState_ == FifoState::FETCHING_FIRST_SLICE)) ? 0 : (fetcherX_ + 1) % 32;
                 backgroundFetcher_.tileAddr |= ((ppuPtr_->windowY_ / 8) << 5);
                 backgroundFetcher_.tileAddr |= fetcherX_;
             }
@@ -345,10 +346,11 @@ void PixelFIFO::ClockBackgroundFetcher()
 
                 if (fifoState_ == FifoState::FETCHING_FIRST_SLICE)
                 {
-                    pixelsToScroll_ = ppuPtr_->reg_.SCX % 8;
+                    pixelsToScroll_ = fetchingWindow_ ? ((ppuPtr_->LX_ + 7) - ppuPtr_->reg_.WX) :
+                                                        (ppuPtr_->reg_.SCX % 8);
 
-                    fifoState_ = (!fetchingWindow_ && (pixelsToScroll_ > 0)) ? FifoState::SCROLLING_FIRST_SLICE :
-                                                                               FifoState::RENDERING_PIXELS;
+                    fifoState_ = (pixelsToScroll_ > 0) ? FifoState::SCROLLING_FIRST_SLICE :
+                                                         FifoState::RENDERING_PIXELS;
                 }
                 else if (fifoState_ == FifoState::SWITCHING_TO_WINDOW)
                 {
