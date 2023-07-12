@@ -1,6 +1,7 @@
 #include <PPU.hpp>
 #include <array>
 #include <cstdint>
+#include <cstring>
 
 std::array<std::array<uint8_t, 3>, 4> DMG_PALETTE = {{{175, 203, 70},
                                                       {121, 170, 109},
@@ -26,6 +27,20 @@ PPU::PPU(PPU_REG reg,
 
 void PPU::Clock(bool const oamDmaInProgress)
 {
+    if (!LCDEnabled())
+    {
+        if (!frameReady_)
+        {
+            ++disabledDots_;
+
+            if (disabledDots_ == 65664)
+            {
+                frameReady_ = true;
+                disabledDots_ = 0;
+            }
+        }
+    }
+
     ++dot_;
 
     if (dot_ == 457)
@@ -104,6 +119,7 @@ void PPU::Reset()
     frameReady_ = false;
     vBlank_ = false;
     wyCondition_ = false;
+    disabledDots_ = 0;
     currentSprites_.clear();
     SetMode(2);
 }
@@ -168,7 +184,7 @@ void PPU::RenderPixel(Pixel pixel)
 {
     if (cgbMode_)
     {
-        if (!LCDEnabled() || (pixel.src == PixelSource::BLANK))
+        if (pixel.src == PixelSource::BLANK)
         {
             frameBuffer_[framePointer_++] = 255;
             frameBuffer_[framePointer_++] = 255;
@@ -205,13 +221,7 @@ void PPU::RenderPixel(Pixel pixel)
     }
     else if (useDmgColors_)
     {
-        if (!LCDEnabled())
-        {
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][2];
-        }
-        else if (pixel.src == PixelSource::BLANK)
+        if (pixel.src == PixelSource::BLANK)
         {
             frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
             frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];
@@ -235,7 +245,7 @@ void PPU::RenderPixel(Pixel pixel)
     }
     else
     {
-        if (!LCDEnabled() || (pixel.src == PixelSource::BLANK))
+        if (pixel.src == PixelSource::BLANK)
         {
             frameBuffer_[framePointer_++] = 255;
             frameBuffer_[framePointer_++] = 255;

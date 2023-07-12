@@ -7,14 +7,18 @@
 
 namespace fs = std::filesystem;
 
-MBC0::MBC0(std::array<uint8_t, 0x4000> const& bank0, std::ifstream& rom, fs::path savePath, uint8_t cartridgeType)
+MBC0::MBC0(std::array<uint8_t, 0x4000> const& bank0,
+           std::ifstream& rom,
+           fs::path savePath,
+           uint8_t cartridgeType,
+           uint8_t ramBankCount)
 {
     savePath_ = savePath;
     batteryBacked_ = (cartridgeType == 0x09);
-    containsRAM_ = (cartridgeType != 0x00);
+    containsRAM_ = (ramBankCount > 0);
 
-    std::copy(bank0.begin(), bank0.end(), ROM_.begin());
-    rom.read((char*)(ROM_.data() + 0x4000), 0x4000);
+    std::copy(bank0.begin(), bank0.end(), ROM_[0].begin());
+    rom.read(reinterpret_cast<char*>(ROM_[1].data()), 0x4000);
     RAM_.fill(0x00);
 
     if (batteryBacked_)
@@ -48,7 +52,12 @@ void MBC0::Reset()
 
 uint8_t MBC0::ReadROM(uint16_t addr)
 {
-    return ROM_[addr];
+    if (addr < 0x4000)
+    {
+        return ROM_[0][addr];
+    }
+
+    return ROM_[1][addr - 0x4000];
 }
 
 void MBC0::WriteROM(uint16_t addr, uint8_t data)

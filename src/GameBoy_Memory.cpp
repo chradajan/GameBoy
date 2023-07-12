@@ -1,4 +1,5 @@
 #include <GameBoy.hpp>
+#include <iostream>
 
 uint8_t GameBoy::Read(uint16_t addr)
 {
@@ -165,8 +166,10 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
     {
         case IO::STAT:  // LCD Status
             return (ioReg_[IO::STAT] | 0x80);
-        case IO::KEY1:
-            return 0xFF;
+        // case IO::KEY1:
+        //     std::cout << "read\n";
+        //     throw;
+        //     return 0xFF;
         case IO::VBK:  // VRAM bank
             return (ioReg_[IO::VBK] | 0xFE);
         case IO::HDMA1:
@@ -206,9 +209,12 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             SetInputs(GetButtons());
             break;
         case IO::SC:  // Serial transfer control
-            ioReg_[IO::SC] = data;
-            serialTransferInProgress_ = (data & 0x80) == 0x80;
-            serialBitsSent_ = 0x00;
+            if (!serialTransferInProgress_)
+            {
+                ioReg_[IO::SC] = data;
+                serialTransferInProgress_ = (data & 0x80) == 0x80;
+                serialBitsSent_ = 0x00;
+            }
             break;
         case IO::DIV:  // Divider register
             ioReg_[IO::DIV] = 0x00;
@@ -224,7 +230,23 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             IoWriteTAC(data);
             break;
         }
-        case IO::STAT:  // LCD Status
+        case IO::LCDC:  // LCD control
+        {
+            bool currentlyEnabled = ppu_.LCDEnabled();
+            ioReg_[IO::LCDC] = data;
+
+            if (!ppu_.LCDEnabled())
+            {
+                ppu_.Reset();
+                ioReg_[IO::STAT] &= 0x7C;
+            }
+            else if (!currentlyEnabled && ppu_.LCDEnabled())
+            {
+                ppu_.Reset();
+            }
+            break;
+        }
+        case IO::STAT:  // LCD status
         {
             data &= 0x78;
             ioReg_[IO::STAT] &= 0x07;

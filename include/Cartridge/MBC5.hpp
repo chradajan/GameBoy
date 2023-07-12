@@ -15,8 +15,8 @@ public:
          std::ifstream& rom,
          fs::path savePath,
          uint8_t cartridgeType,
-         uint16_t romBanks,
-         uint8_t ramBanks);
+         uint16_t romBankCount,
+         uint8_t ramBankCount);
 
     ~MBC5();
 

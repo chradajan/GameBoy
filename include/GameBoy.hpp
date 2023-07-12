@@ -11,6 +11,8 @@
 #include <optional>
 #include <utility>
 
+constexpr size_t FRAME_BUFFER_SIZE = 160 * 144 * 3;
+
 namespace IO
 {
 /// @brief Enum of I/O Register addresses. Only use lower byte since upper byte is 0xFF for all addresses.
@@ -138,7 +140,7 @@ class GameBoy
 public:
     /// @brief GameBoy constructor. Handles creation of all components.
     /// @param frameBuffer Pointer to buffer to store pixel data.
-    GameBoy(uint8_t* frameBuffer);
+    GameBoy(std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer);
 
     /// @brief Infinitely run the GameBoy. Immediately returns if no cartridge is loaded.
     void Run();
@@ -220,6 +222,7 @@ private:
     std::array<uint8_t, 0x40> BG_CRAM_;  // Background palette data accessed through BCPS/BCPD
     std::array<uint8_t, 0x40> OBJ_CRAM_;  // OBJ palette data accessed through OCPS/OCPD
     std::array<uint8_t, 0x900> BOOT_ROM;  // Boot ROM
+    std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer_;
 
     // I/O Registers
     std::array<uint8_t, 0x78> ioReg_;

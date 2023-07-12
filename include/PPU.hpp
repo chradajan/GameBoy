@@ -101,6 +101,7 @@ private:
     bool vBlank_;
     bool wyCondition_;
     bool useDmgColors_;
+    uint32_t disabledDots_;
 
     std::vector<OamEntry> currentSprites_;
 

@@ -3,8 +3,11 @@
 #include <cstdint>
 #include <fstream>
 #include <functional>
+#include <iomanip>
+#include <iostream>
 #include <optional>
 #include <sstream>
+#include <string>
 #include <utility>
 
 CPU::CPU(std::function<uint8_t(uint16_t)> readFunction, std::function<void(uint16_t, uint8_t)> writeFunction) :

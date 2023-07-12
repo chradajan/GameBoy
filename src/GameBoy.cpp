@@ -10,7 +10,8 @@
 #include <functional>
 #include <iostream>
 
-GameBoy::GameBoy(uint8_t* const frameBuffer) :
+GameBoy::GameBoy(std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer) :
+    frameBuffer_(frameBuffer),
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
          std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2)),
     ppu_({ioReg_[IO::LCDC], ioReg_[IO::STAT], ioReg_[IO::SCY], ioReg_[IO::SCX], ioReg_[IO::LY], ioReg_[IO::LYC], ioReg_[IO::WY], ioReg_[IO::WX]},
@@ -18,7 +19,7 @@ GameBoy::GameBoy(uint8_t* const frameBuffer) :
          {ioReg_[IO::OPRI], OAM_},
          VRAM_,
          cgbMode_,
-         frameBuffer),
+         frameBuffer.data()),
     cartridge_(nullptr)
 {
 }
@@ -33,6 +34,11 @@ void GameBoy::Run()
     while (!ppu_.FrameReady())
     {
         RunMCycle();
+    }
+
+    if (!ppu_.LCDEnabled())
+    {
+        frameBuffer_.fill(0xFF);
     }
 }
 
@@ -173,11 +179,9 @@ void GameBoy::InsertCartridge(fs::path romPath)
         case 0x00:
         case 0x08:
         case 0x09:
-            cartridge_ = std::make_unique<MBC0>(bank0, rom, savePath, cartridgeType);
+            cartridge_ = std::make_unique<MBC0>(bank0, rom, savePath, cartridgeType, ramBanks);
             break;
-        case 0x01:
-        case 0x02:
-        case 0x03:
+        case 0x01 ... 0x03:
             cartridge_ = std::make_unique<MBC1>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
             break;
         case 0x19 ... 0x1E:
@@ -282,7 +286,7 @@ std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
 {
     CheckVBlankInterrupt();
     CheckStatInterrupt();
-    uint8_t pendingInterrupts = ioReg_[IO::IF] & (IE_ & 0x1F);
+    uint8_t pendingInterrupts = ioReg_[IO::IF] & IE_ & 0x1F;
 
     if (pendingInterrupts != 0x00)
     {
@@ -341,12 +345,12 @@ void GameBoy::CheckVBlankInterrupt()
 
 void GameBoy::CheckStatInterrupt()
 {
-    bool currStatState_ = false;
+    bool currStatState = false;
 
     // Check for LYC=LY interrupt
     if ((ioReg_[IO::STAT] & 0x44) == 0x44)
     {
-        currStatState_ = true;
+        currStatState = true;
     }
     else
     {
@@ -356,23 +360,23 @@ void GameBoy::CheckStatInterrupt()
         switch (ppuMode)
         {
             case 0:
-                currStatState_ = (ioReg_[IO::STAT] & 0x08);
+                currStatState = (ioReg_[IO::STAT] & 0x08);
                 break;
             case 1:
-                currStatState_ = (ioReg_[IO::STAT] & 0x10);
+                currStatState = (ioReg_[IO::STAT] & 0x10);
                 break;
             case 2:
-                currStatState_ = (ioReg_[IO::STAT] & 0x20);
+                currStatState = (ioReg_[IO::STAT] & 0x20);
                 break;
             default:
                 break;
         }
     }
 
-    if (!prevStatState_ && currStatState_)
+    if (!prevStatState_ && currStatState)
     {
         ioReg_[IO::IF] |= INT_SRC::LCD_STAT;
     }
 
-    prevStatState_ = currStatState_;
+    prevStatState_ = currStatState;
 }

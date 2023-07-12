@@ -20,7 +20,7 @@ int main(int argc, char** argv)
     std::array<uint8_t, SCREEN_WIDTH * SCREEN_HEIGHT * CHANNELS> frameBuffer;
     frameBuffer.fill(0x00);
 
-    auto gameBoy = GameBoy(frameBuffer.data());
+    auto gameBoy = GameBoy(frameBuffer);
     auto gameWindow = GameWindow(&gameBoy, frameBuffer.data());
 
     if (argc > 1)
