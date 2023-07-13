@@ -236,6 +236,7 @@ private:
     // Serial transfer
     uint8_t serialOutData_;
     uint8_t serialBitsSent_;
+    uint8_t serialTransferCounter_;
     bool serialTransferInProgress_;
 
     // Timer

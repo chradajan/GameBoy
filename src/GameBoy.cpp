@@ -101,6 +101,7 @@ void GameBoy::Reset()
 
     serialOutData_ = 0x00;
     serialBitsSent_ = 0;
+    serialTransferCounter_ = 0;
     serialTransferInProgress_ = false;
 
     divCounter_ = 0;

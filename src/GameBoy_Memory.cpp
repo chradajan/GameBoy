@@ -208,8 +208,9 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             if (!serialTransferInProgress_)
             {
                 ioReg_[IO::SC] = data;
-                serialTransferInProgress_ = (data & 0x80) == 0x80;
-                serialBitsSent_ = 0x00;
+                serialTransferCounter_ = 0;
+                serialTransferInProgress_ = (data & 0x81) == 0x81;
+                serialBitsSent_ = 0;
             }
             break;
         case IO::DIV:  // Divider register

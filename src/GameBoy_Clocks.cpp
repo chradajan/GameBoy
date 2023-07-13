@@ -175,20 +175,26 @@ void GameBoy::ClockVramHDMA()
 
 void GameBoy::ClockSerialTransfer()
 {
-    serialOutData_ <<= 1;
-    serialOutData_ |= (ioReg_[IO::SB] & 0x80) >> 7;
-    ioReg_[IO::SB] <<= 1;
-    ioReg_[IO::SB] |= 0x01;
-    ++serialBitsSent_;
+    ++serialTransferCounter_;
 
-    if (serialBitsSent_ == 8)
+    if (serialTransferCounter_ == 128)
     {
-        serialTransferInProgress_ = false;
-        ioReg_[IO::SC] &= 0x7F;
-        ioReg_[IO::IF] |= INT_SRC::SERIAL;
+        serialTransferCounter_ = 0;
+        serialOutData_ <<= 1;
+        serialOutData_ |= (ioReg_[IO::SB] & 0x80) >> 7;
+        ioReg_[IO::SB] <<= 1;
+        ioReg_[IO::SB] |= 0x01;
+        ++serialBitsSent_;
 
-        #ifdef PRINT_SERIAL
-            std::cout << (char)serialOutData_;
-        #endif
+        if (serialBitsSent_ == 8)
+        {
+            serialTransferInProgress_ = false;
+            ioReg_[IO::SC] &= 0x7F;
+            ioReg_[IO::IF] |= INT_SRC::SERIAL;
+
+            #ifdef PRINT_SERIAL
+                std::cout << (char)serialOutData_;
+            #endif
+        }
     }
 }

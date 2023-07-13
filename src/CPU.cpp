@@ -58,7 +58,6 @@ bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
             }
         }
 
-
         if (interruptInfo)
         {
             if (interruptsEnabled_)
