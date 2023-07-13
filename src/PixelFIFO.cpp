@@ -311,23 +311,28 @@ void PixelFIFO::ClockBackgroundFetcher()
             break;
         case 4:     // Get tile data low
         {
-            backgroundFetcher_.tileAddr = 0x8000;
-
-            if (!(ppuPtr_->BackgroundAndWindowTileAddrMode() || (backgroundFetcher_.tileId & 0x80)))
-            {
-                backgroundFetcher_.tileAddr |= 0x1000;
-            }
-
-            backgroundFetcher_.tileAddr |= (backgroundFetcher_.tileId << 4);
-            uint8_t row = fetchingWindow_ ? (ppuPtr_->windowY_ % 8) :
-                                            ((ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) % 8);
+            uint_fast8_t row = fetchingWindow_ ? (ppuPtr_->windowY_ % 8) :
+                                                 ((ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) % 8);
 
             if (backgroundFetcher_.verticalFlip)
             {
                 row = ~row & 0x07;
             }
 
-            backgroundFetcher_.tileAddr |= (row << 1);
+            if (ppuPtr_->BackgroundAndWindowTileAddrMode())
+            {
+                backgroundFetcher_.tileAddr = 0x8000 | (backgroundFetcher_.tileId << 4) | (row << 1);
+            }
+            else if (backgroundFetcher_.tileId & 0x80)
+            {
+                backgroundFetcher_.tileId &= 0x7F;
+                backgroundFetcher_.tileAddr = 0x8800 | (backgroundFetcher_.tileId << 4) | (row << 1);
+            }
+            else
+            {
+                backgroundFetcher_.tileAddr = 0x9000 | (backgroundFetcher_.tileId << 4) | (row << 1);
+            }
+
             backgroundFetcher_.tileDataLow = ppuPtr_->VRAM_[backgroundFetcher_.vramBank][backgroundFetcher_.tileAddr - 0x8000];
             break;
         }

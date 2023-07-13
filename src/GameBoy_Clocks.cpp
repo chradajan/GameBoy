@@ -1,4 +1,5 @@
 #include <GameBoy.hpp>
+#include <iostream>
 
 void GameBoy::RunMCycle()
 {
@@ -81,7 +82,7 @@ void GameBoy::ClockTimer()
         }
         else if (timerCounter_ == timerControl_)
         {
-            timerCounter_ = 0x0000;
+            timerCounter_ = 0;
             ++ioReg_[IO::TIMA];
 
             if (ioReg_[IO::TIMA] == 0x00)

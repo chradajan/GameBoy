@@ -8,7 +8,6 @@
 #include <algorithm>
 #include <array>
 #include <functional>
-#include <iostream>
 
 GameBoy::GameBoy(std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer) :
     frameBuffer_(frameBuffer),
@@ -345,6 +344,11 @@ void GameBoy::CheckVBlankInterrupt()
 
 void GameBoy::CheckStatInterrupt()
 {
+    if (!ppu_.LCDEnabled())
+    {
+        return;
+    }
+
     bool currStatState = false;
 
     // Check for LYC=LY interrupt

@@ -49,13 +49,13 @@ uint8_t GameBoy::Read(uint16_t addr)
     else if (addr < 0xE000)
     {
         // WRAM Banks 1-7
-        uint8_t ramBank = (ioReg_[IO::SVBK] == 0x00) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
+        uint8_t ramBank = (!cgbMode_ || (ioReg_[IO::SVBK] == 0x00)) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         return WRAM_[ramBank][addr - 0xD000];
     }
     else if (addr < 0xFE00)
     {
         // ECHO RAM, prohibited, TODO
-        return 0x00;
+        return 0xFF;
     }
     else if (addr < 0xFEA0)
     {
@@ -69,7 +69,7 @@ uint8_t GameBoy::Read(uint16_t addr)
     else if (addr < 0xFF00)
     {
         // Unusable, prohibited, TODO
-        return 0x00;
+        return 0xFF;
     }
     else if (addr < 0xFF80)
     {
@@ -87,7 +87,7 @@ uint8_t GameBoy::Read(uint16_t addr)
         return IE_;
     }
 
-    return 0x00;
+    return 0xFF;
 }
 
 void GameBoy::Write(uint16_t addr, uint8_t data)
@@ -121,7 +121,7 @@ void GameBoy::Write(uint16_t addr, uint8_t data)
     else if (addr < 0xE000)
     {
         // WRAM Banks 1-7
-        uint8_t ramBank = (ioReg_[IO::SVBK] == 0x00) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
+        uint8_t ramBank = (!cgbMode_ || (ioReg_[IO::SVBK] == 0x00)) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         WRAM_[ramBank][addr - 0xD000] = data;
     }
     else if (addr < 0xFE00)
@@ -165,11 +165,7 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
     switch (addr & 0xFF)
     {
         case IO::STAT:  // LCD Status
-            return (ioReg_[IO::STAT] | 0x80);
-        // case IO::KEY1:
-        //     std::cout << "read\n";
-        //     throw;
-        //     return 0xFF;
+            return (ioReg_[IO::STAT]);
         case IO::VBK:  // VRAM bank
             return (ioReg_[IO::VBK] | 0xFE);
         case IO::HDMA1:
@@ -218,8 +214,8 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             break;
         case IO::DIV:  // Divider register
             ioReg_[IO::DIV] = 0x00;
-            timerCounter_ = 0x0000;
-            divCounter_ = 0x00;
+            timerCounter_ = 0;
+            divCounter_ = 0;
             break;
         case IO::TIMA:  // Timer counter
             timerReload_ = false;
@@ -239,6 +235,7 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             {
                 ppu_.Reset();
                 ioReg_[IO::STAT] &= 0x7C;
+                ioReg_[IO::IF] &= ~INT_SRC::LCD_STAT;
             }
             else if (!currentlyEnabled && ppu_.LCDEnabled())
             {
@@ -279,9 +276,9 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
 
 void GameBoy::IoWriteTAC(uint8_t data)
 {
-    ioReg_[IO::TAC] = data;
-    timerCounter_ = 0x0000;
-    timerEnabled_ = (data & 0x04) == 0x04;
+    ioReg_[IO::TAC] = 0xF8 | (data & 0x03);
+    timerCounter_ = 0;
+    timerEnabled_ = data & 0x04;
     uint8_t clockSelect = data & 0x03;
 
     switch (clockSelect)

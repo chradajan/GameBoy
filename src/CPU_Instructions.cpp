@@ -600,7 +600,6 @@ void CPU::Halt()
             setInterruptsEnabled_ = false;
             interruptCountdown_ = 0;
             interruptsEnabled_ = true;
-            --reg_.PC;
         }
         else
         {
