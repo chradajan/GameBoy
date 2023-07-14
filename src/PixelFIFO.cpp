@@ -152,6 +152,7 @@ void PixelFIFO::ClockSpriteFetcher()
             auto spriteInfo = orderedSprites_[ppuPtr_->LX_].front();
             OamEntry spriteToLoad = spriteInfo.first;
             spriteBeingLoadedIndex_ = spriteInfo.second;
+            pixelsToScroll_ = (ppuPtr_->LX_ + 8) - spriteToLoad.xPos;
 
             spriteFetcher_.tileId = spriteToLoad.tileIndex;
             spriteFetcher_.priority = spriteToLoad.flags.priority;
@@ -226,6 +227,12 @@ void PixelFIFO::PushSpritePixels()
             color = ((spriteFetcher_.tileDataHigh & 0x80) >> 6) | ((spriteFetcher_.tileDataLow & 0x80) >> 7);
             spriteFetcher_.tileDataHigh <<= 1;
             spriteFetcher_.tileDataLow <<= 1;
+        }
+
+        if (pixelsToScroll_ > 0)
+        {
+            --pixelsToScroll_;
+            continue;
         }
 
         Pixel pixel = {color, spriteFetcher_.palette, spriteBeingLoadedIndex_, spriteFetcher_.priority, PixelSource::SPRITE};
