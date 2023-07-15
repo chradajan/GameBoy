@@ -234,7 +234,7 @@ private:
     void IoWriteBCPD(uint8_t data);
     void IoWriteOCPD(uint8_t data);
 
-    void DefaultCgbIoValues();
+    void SetDefaultCgbIoValues();
 
     // Memory
     std::array<std::array<uint8_t, 0x2000>, 2> VRAM_;  // $8000 ... $9FFF

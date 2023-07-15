@@ -64,9 +64,15 @@ void GameBoy::Reset()
     BG_CRAM_.fill(0x00);
     OBJ_CRAM_.fill(0x00);
 
+    SetDefaultCgbIoValues();
+
     if (!runningBootRom_)
     {
-        DefaultCgbIoValues();
+        SetDefaultCgbIoValues();
+    }
+    else
+    {
+        ioReg_.fill(0x00);
     }
 
     stopped_ = false;

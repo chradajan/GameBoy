@@ -409,7 +409,7 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
         case IO::UNMAP_BOOT_ROM:  // Boot ROM disable
             if (runningBootRom_)
             {
-                DefaultCgbIoValues();
+                SetDefaultCgbIoValues();
                 runningBootRom_ = false;
                 cgbMode_ = cgbCartridge_;
             }
@@ -597,7 +597,7 @@ void GameBoy::IoWriteOCPD(uint8_t data)
     }
 }
 
-void GameBoy::DefaultCgbIoValues()
+void GameBoy::SetDefaultCgbIoValues()
 {
     ioReg_[IO::JOYP] = 0xCF;
     ioReg_[IO::SB] = 0x00;
