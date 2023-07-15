@@ -435,7 +435,10 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             IoWriteOCPD(data);
             break;
         case IO::OPRI:  // OBJ priority mode
-            ioReg_[IO::OPRI] = data | 0xFE;
+            if (runningBootRom_)
+            {
+                ioReg_[IO::OPRI] = data | 0xFE;
+            }
             break;
         case IO::SVBK:  // WRAM bank
             ioReg_[IO::SVBK] = data;
