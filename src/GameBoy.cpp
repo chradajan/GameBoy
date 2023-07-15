@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <functional>
+#include <sstream>
 
 GameBoy::GameBoy(std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer) :
     frameBuffer_(frameBuffer),
@@ -119,8 +120,20 @@ void GameBoy::InsertCartridge(fs::path romPath)
     cgbCartridge_ = (bank0[0x143] & 0x80) == 0x80;
 
     uint8_t titleLength = cgbCartridge_ ? 15 : 16;
-    std::string title(reinterpret_cast<char*>(&bank0[0x0134]), titleLength);
-    fs::path savePath = SAVE_PATH.string() + title + ".sav";
+    std::stringstream title;
+
+    for (uint_fast8_t i = 0; i < titleLength; ++i)
+    {
+        if (bank0[0x0134 + i] == 0x00)
+        {
+            continue;
+        }
+
+        title << static_cast<char>(bank0[0x0134 + i]);
+    }
+
+    title << ".sav";
+    fs::path savePath = SAVE_PATH.string() + title.str();
 
     uint16_t romBanks = 2 << bank0[0x0148];
     uint8_t ramBanks;
