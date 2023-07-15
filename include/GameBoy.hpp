@@ -156,10 +156,15 @@ public:
 
     bool FrameReady();
 
+    /// @brief Update JOYP based on which buttons are pressed and which buttons are selected to read. If stop mode is active and a
+    ///        button is pressed, exit stop mode.
+    /// @param buttons Buttons currently being pressed.
     void SetInputs(Buttons const& buttons);
 
 private:
     void RunMCycle();
+
+    void ClockVariableSpeedComponents(bool clockCpu);
 
     /// @brief Clock the timer components.
     void ClockTimer();
@@ -186,6 +191,20 @@ private:
 
     void CheckStatInterrupt();
 
+    /// @brief Check the current speed mode.
+    /// @return True if running in double speed, false if normal speed.
+    bool DoubleSpeedMode() const { return ioReg_[IO::KEY1] & 0x80; }
+
+    bool PrepareSpeedSwitch() const { return ioReg_[IO::KEY1] & 0x01; }
+
+    void SwitchSpeedMode() { ioReg_[IO::KEY1] ^= 0x80; }
+
+    /// @brief Determine what happens when CPU executes a STOP instruction.
+    /// @param IME Whether interrupts are currently enabled in the CPU.
+    /// @return First bool is true if STOP is a 2-byte opcode, false if it's a 1-byte opcode.
+    ///         Second bool is true if HALT mode is entered, false otherwise.
+    std::pair<bool, bool> Stop(bool IME);
+
     /// @brief Decode the provided address and read from the relevant location in memory.
     /// @param src Which component initiated this read.
     /// @param addr Address to read from.
@@ -208,11 +227,14 @@ private:
     /// @param data Data to write to register. Some registers may have unique write behaviors beyond writing data to memory.
     void WriteIoReg(uint16_t addr, uint8_t data);
 
+    void IoWriteSC(uint8_t data);
     void IoWriteTAC(uint8_t data);
     void IoWriteDMA(uint8_t data);
     void IoWriteVramDMA(uint8_t data);
     void IoWriteBCPD(uint8_t data);
     void IoWriteOCPD(uint8_t data);
+
+    void DefaultCgbIoValues();
 
     // Memory
     std::array<std::array<uint8_t, 0x2000>, 2> VRAM_;  // $8000 ... $9FFF
@@ -232,11 +254,16 @@ private:
     bool cgbMode_;
     bool cgbCartridge_;
     bool runningBootRom_;
+    bool stopped_;
+
+    // Speed switch
+    uint16_t speedSwitchCountdown_;
 
     // Serial transfer
     uint8_t serialOutData_;
     uint8_t serialBitsSent_;
     uint8_t serialTransferCounter_;
+    uint8_t serialClockDivider_;
     bool serialTransferInProgress_;
 
     // Timer

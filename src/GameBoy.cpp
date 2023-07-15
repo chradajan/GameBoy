@@ -12,7 +12,9 @@
 GameBoy::GameBoy(std::array<uint8_t, FRAME_BUFFER_SIZE>& frameBuffer) :
     frameBuffer_(frameBuffer),
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
-         std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2)),
+         std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2),
+         std::bind(&GameBoy::AcknowledgeInterrupt, this),
+         std::bind(&GameBoy::Stop, this, std::placeholders::_1)),
     ppu_({ioReg_[IO::LCDC], ioReg_[IO::STAT], ioReg_[IO::SCY], ioReg_[IO::SCX], ioReg_[IO::LY], ioReg_[IO::LYC], ioReg_[IO::WY], ioReg_[IO::WX]},
          {ioReg_[IO::BGP], ioReg_[IO::OBP0], ioReg_[IO::OBP1], BG_CRAM_, OBJ_CRAM_},
          {ioReg_[IO::OPRI], OAM_},
@@ -32,7 +34,10 @@ void GameBoy::Run()
 
     while (!ppu_.FrameReady())
     {
-        RunMCycle();
+        if (!stopped_)
+        {
+            RunMCycle();
+        }
     }
 
     if (!ppu_.LCDEnabled())
@@ -43,65 +48,34 @@ void GameBoy::Run()
 
 void GameBoy::Reset()
 {
+    for (auto& bank : VRAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    for (auto& bank : WRAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    OAM_.fill(0x00);
+    HRAM_.fill(0x00);
+    BG_CRAM_.fill(0x00);
+    OBJ_CRAM_.fill(0x00);
+
     if (!runningBootRom_)
     {
-        for (auto& bank : VRAM_)
-        {
-            bank.fill(0x00);
-        }
-
-        for (auto& bank : WRAM_)
-        {
-            bank.fill(0x00);
-        }
-
-        OAM_.fill(0x00);
-        HRAM_.fill(0x00);
-        BG_CRAM_.fill(0x00);
-        OBJ_CRAM_.fill(0x00);
-
-        ioReg_.fill(0x00);
-        ioReg_[IO::JOYP] = 0xCF;
-        ioReg_[IO::SC] = 0x7F;
-        ioReg_[IO::TAC] = 0xF8;
-        ioReg_[IO::IF] = 0xE1;
-        ioReg_[IO::NR10] = 0x80;
-        ioReg_[IO::NR11] = 0xBF;
-        ioReg_[IO::NR12] = 0xF3;
-        ioReg_[IO::NR13] = 0xFF;
-        ioReg_[IO::NR14] = 0xBF;
-        ioReg_[IO::NR21] = 0x3F;
-        ioReg_[IO::NR23] = 0xFF;
-        ioReg_[IO::NR24] = 0xBF;
-        ioReg_[IO::NR30] = 0x7F;
-        ioReg_[IO::NR31] = 0xFF;
-        ioReg_[IO::NR32] = 0x9F;
-        ioReg_[IO::NR33] = 0xFF;
-        ioReg_[IO::NR34] = 0xBF;
-        ioReg_[IO::NR41] = 0xFF;
-        ioReg_[IO::NR44] = 0xBF;
-        ioReg_[IO::NR50] = 0x77;
-        ioReg_[IO::NR51] = 0xF3;
-        ioReg_[IO::NR52] = 0xF1;
-        ioReg_[IO::LCDC] = 0x91;
-        ioReg_[IO::BGP] = 0xFC;
-        ioReg_[IO::KEY1] = 0xFF;
-        ioReg_[IO::VBK] = 0xFF;
-        ioReg_[IO::HDMA1] = 0xFF;
-        ioReg_[IO::HDMA2] = 0xFF;
-        ioReg_[IO::HDMA3] = 0xFF;
-        ioReg_[IO::HDMA4] = 0xFF;
-        ioReg_[IO::HDMA5] = 0xFF;
-        ioReg_[IO::SVBK] = 0xFF;
+        DefaultCgbIoValues();
     }
-    else
-    {
-        ioReg_.fill(0x00);
-    }
+
+    stopped_ = false;
+
+    speedSwitchCountdown_ = 0;
 
     serialOutData_ = 0x00;
     serialBitsSent_ = 0;
     serialTransferCounter_ = 0;
+    serialClockDivider_ = 128;
     serialTransferInProgress_ = false;
 
     divCounter_ = 0;
@@ -280,6 +254,12 @@ void GameBoy::SetInputs(Buttons const& buttons)
             ioReg_[IO::JOYP] &= 0x0E;
         }
     }
+
+    if (stopped_ && ((ioReg_[IO::JOYP] & 0x0F) != 0x0F))
+    {
+        stopped_ = false;
+    }
+
 }
 
 std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()
@@ -384,4 +364,66 @@ void GameBoy::CheckStatInterrupt()
     }
 
     prevStatState_ = currStatState;
+}
+
+std::pair<bool, bool> GameBoy::Stop(bool const IME)
+{
+    SetInputs(GetButtons());
+    bool const buttonsPressed = (ioReg_[IO::JOYP] & 0x0F) != 0x0F;
+    bool const interruptPending = (ioReg_[IO::IF] & IE_ & 0x1F) != 0x00;
+    bool twoByteOpcode = false;
+    bool enterHaltMode = false;
+
+    if (buttonsPressed)
+    {
+        if (interruptPending)
+        {
+            twoByteOpcode = false;
+            enterHaltMode = false;
+        }
+        else
+        {
+            twoByteOpcode = true;
+            enterHaltMode = true;
+        }
+    }
+    else if (PrepareSpeedSwitch())
+    {
+        if (interruptPending)
+        {
+            if (IME)
+            {
+                // CPU glitches non-deterministically. Just treat as a 2-byte opcode and hope for the best.
+                twoByteOpcode = true;
+                enterHaltMode = false;
+            }
+            else
+            {
+                SwitchSpeedMode();
+                ioReg_[IO::KEY1] &= 0xFE;
+                ioReg_[IO::DIV] = 0;
+                twoByteOpcode = false;
+                enterHaltMode = false;
+            }
+        }
+        else
+        {
+            // Good path for speed switch.
+            ioReg_[IO::DIV] = 0;
+            SwitchSpeedMode();  //
+            ioReg_[IO::KEY1] &= 0xFE;  //
+            speedSwitchCountdown_ = 2050;
+            twoByteOpcode = true;
+            enterHaltMode = true;
+        }
+    }
+    else
+    {
+        ioReg_[IO::DIV] = 0;
+        twoByteOpcode = !interruptPending;
+        enterHaltMode = false;
+        stopped_ = true;
+    }
+
+    return {twoByteOpcode, enterHaltMode};
 }

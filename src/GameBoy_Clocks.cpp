@@ -9,33 +9,21 @@ void GameBoy::RunMCycle()
         {
             case 0:
             {
+                bool clockCpu = true;
+
                 if (gdmaInProgress_)
                 {
+                    clockCpu = false;
                     ClockVramGDMA();
                 }
                 else if (hdmaInProgress_ && (hdmaBytesRemaining_ > 0))
                 {
+                    clockCpu = false;
                     ClockVramHDMA();
                 }
-                else
-                {
-                    if (cpu_.Clock(CheckPendingInterrupts()))
-                    {
-                        AcknowledgeInterrupt();
-                    }
-                }
 
-                if (serialTransferInProgress_)
-                {
-                    ClockSerialTransfer();
-                }
+                ClockVariableSpeedComponents(clockCpu);
 
-                if (oamDmaInProgress_)
-                {
-                    ClockOamDma();
-                }
-
-                ClockTimer();
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             }
@@ -43,6 +31,12 @@ void GameBoy::RunMCycle()
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             case 2:
+                if (DoubleSpeedMode())
+                {
+                    bool clockCpu = !(gdmaInProgress_ || (hdmaInProgress_ && (hdmaBytesRemaining_ > 0)));
+                    ClockVariableSpeedComponents(clockCpu);
+                }
+
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             case 3:
@@ -58,16 +52,49 @@ void GameBoy::RunMCycle()
             }
         }
     }
+
+    if (speedSwitchCountdown_ > 0)
+    {
+        --speedSwitchCountdown_;
+
+        if (speedSwitchCountdown_ == 0)
+        {
+            cpu_.ExitHalt();
+        }
+    }
+}
+
+void GameBoy::ClockVariableSpeedComponents(bool const clockCpu)
+{
+    if (clockCpu)
+    {
+        cpu_.Clock(CheckPendingInterrupts());
+    }
+
+    if (serialTransferInProgress_)
+    {
+        ClockSerialTransfer();
+    }
+
+    if (oamDmaInProgress_)
+    {
+        ClockOamDma();
+    }
+
+    ClockTimer();
 }
 
 void GameBoy::ClockTimer()
 {
-    ++divCounter_;
-
-    if (divCounter_ == 64)
+    if (speedSwitchCountdown_ == 0)
     {
-        ++ioReg_[IO::DIV];
-        divCounter_ = 0;
+        ++divCounter_;
+
+        if (divCounter_ == 64)
+        {
+            ++ioReg_[IO::DIV];
+            divCounter_ = 0;
+        }
     }
 
     if (timerEnabled_)

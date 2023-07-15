@@ -616,14 +616,18 @@ void CPU::Halt()
 
 void CPU::Stop()
 {
-    cmdData8_ = ReadPC();
+    auto [readNextByte, halted] = ReportStop(interruptsEnabled_);
 
-    #ifdef LOG
-        opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-    #endif
+    if (readNextByte)
+    {
+        cmdData8_ = ReadPC();
 
-    // TODO: Implement stop op
-    // This needs to also reset the DIV register
+        #ifdef LOG
+            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
+        #endif
+    }
+
+    halted_ = halted;
     mCycle_ = 0;
 }
 

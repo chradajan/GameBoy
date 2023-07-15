@@ -10,20 +10,22 @@
 #include <string>
 #include <utility>
 
-CPU::CPU(std::function<uint8_t(uint16_t)> readFunction, std::function<void(uint16_t, uint8_t)> writeFunction) :
-    Read(readFunction), Write(writeFunction)
+CPU::CPU(std::function<uint8_t(uint16_t)> readFunction,
+         std::function<void(uint16_t, uint8_t)> writeFunction,
+         std::function<void()> acknowledgeInterruptFunction,
+         std::function<std::pair<bool, bool>(bool)> stopFunction) :
+    Read(readFunction), Write(writeFunction), AcknowledgeInterrupt(acknowledgeInterruptFunction), ReportStop(stopFunction)
 {
     #ifdef LOG
         InitializeLogging();
     #endif
 }
 
-bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
+void CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
 {
     ++mCyclesTotal_;
 
     uint16_t interruptAddr = 0x0000;
-    bool interruptAcknowledged = false;
     numPendingInterrupts_ = 0;
 
     if (interruptInfo)
@@ -62,7 +64,7 @@ bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
         {
             if (interruptsEnabled_)
             {
-                interruptAcknowledged = true;
+                AcknowledgeInterrupt();
                 --numPendingInterrupts_;
                 instruction_ = std::bind(&CPU::InterruptHandler, this, interruptAddr);
                 interruptsEnabled_ = false;
@@ -76,7 +78,7 @@ bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
 
     if (halted_)
     {
-        return interruptAcknowledged;
+        return;
     }
 
     ++mCycle_;
@@ -90,7 +92,7 @@ bool CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
         instruction_();
     }
 
-    return interruptAcknowledged;
+    return;
 }
 
 void CPU::Reset(bool const bootRom)

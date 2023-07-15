@@ -162,56 +162,141 @@ void GameBoy::Write(uint16_t addr, uint8_t data)
 
 uint8_t GameBoy::ReadIoReg(uint16_t addr)
 {
-    switch (addr & 0xFF)
+    uint_fast8_t ioAddr = addr & 0x00FF;
+
+    switch (ioAddr)
     {
-        case IO::STAT:  // LCD Status
-            return (ioReg_[IO::STAT]);
-        case IO::VBK:  // VRAM bank
-            return (ioReg_[IO::VBK] | 0xFE);
-        case IO::HDMA1:
-        case IO::HDMA2:
-        case IO::HDMA3:
-        case IO::HDMA4:
+        case IO::JOYP:  // Joypad
+            return ioReg_[IO::JOYP];
+        case IO::SB:  // Serial transfer data
+            return ioReg_[IO::SB];
+        case IO::SC:  // Serial transfer control
+            return ioReg_[IO::SC];
+        case IO::DIV:  // Divider register
+            return ioReg_[IO::DIV];
+        case IO::TIMA: // Timer counter
+            return ioReg_[IO::TIMA];
+        case IO::TMA:  // Timer modulo
+            return ioReg_[IO::TMA];
+        case IO::TAC:  // Timer control
+            return ioReg_[IO::TAC];
+        case IO::IF:  // Interrupt flag
+            return ioReg_[IO::IF];
+        
+        case IO::NR10:  // Sound channel 1 sweep
             return 0xFF;
+        case IO::NR11:  // Sound channel 1 length timer & duty cycle
+            return 0xFF;
+        case IO::NR12:  // Sound channel 1 volume & envelope
+            return 0xFF;
+        case IO::NR14:  // Sound channel 1 period high & sound control
+            return 0xFF;
+        case IO::NR21:  // Sound channel 2 length timer & duty cycle
+            return 0xFF;
+        case IO::NR22:  // Sound channel 2 volume & envelope
+            return 0xFF;
+        case IO::NR24:  // Sound channel 2 period high & control
+            return 0xFF;
+        case IO::NR30:  // Sound channel 3 DAC enable
+            return 0xFF;
+        case IO::NR32:  // Sound channel 3 output level
+            return 0xFF;
+        case IO::NR34:  // Sound channel 3 period high & control
+            return 0xFF;
+        case IO::NR42:  // Sound channel 4 volume & envelope
+            return 0xFF;
+        case IO::NR43:  // Sound channel 4 frequency & randomness
+            return 0xFF;
+        case IO::NR44:  // Sound channel 4 control
+            return 0xFF;
+        case IO::NR50:  // Master volume & VIN panning
+            return 0xFF;
+        case IO::NR51:  // Sound panning
+            return 0xFF;
+        case IO::NR52:  // Sound on/off
+            return 0xFF;
+
+        case IO::WAVE_RAM_START ... IO::WAVE_RAM_END:  // Wave RAM
+            return ioReg_[ioAddr];
+        case IO::LCDC:  // LCD control
+            return ioReg_[IO::LCDC];
+        case IO::STAT:  // LCD Status
+            return ioReg_[IO::STAT];
+        case IO::SCY ... IO::SCX:  // Viewport position
+            return ioReg_[ioAddr];
+        case IO::LY:  // LCD Y coordinate
+            return ioReg_[IO::LY];
+        case IO::LYC:  // LY compare
+            return ioReg_[IO::LYC];
+        case IO::DMA:  // OAM DMA
+            return ioReg_[IO::DMA];
+        case IO::BGP ... IO::OBP1:  // DMG palettes
+            return ioReg_[ioAddr];
+        case IO::WY ... IO::WX:  // Window position
+            return ioReg_[ioAddr];
+        case IO::KEY1:  // Speed switch
+            return ioReg_[IO::KEY1];
+        case IO::VBK:  // VRAM bank
+            return ioReg_[IO::VBK];
+        case IO::HDMA5:
+        {
+            if (hdmaInProgress_)
+            {
+                return (hdmaBlocksRemaining_ - 1);
+            }
+
+            return 0xFF;
+        }
+        case IO::RP:  // Infrared communication port
+            return 0xFF;
+        case IO::BCPS:  // Background color palette specification
+            return ioReg_[IO::BCPS];
         case IO::BCPD:  // Background color palette data
+        {
             if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
             {
                 return 0xFF;
             }
 
             return BG_CRAM_[ioReg_[IO::BCPS] & 0x3F];
+        }
+        case IO::OCPS:  // OBJ color palette specification
+            return ioReg_[IO::OCPS];
         case IO::OCPD:  // OBJ color palette data
+        {
             if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
             {
                 return 0xFF;
             }
 
             return OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F];
+        }
+        case IO::OPRI:  // OBJ priority mode
+            return ioReg_[IO::OPRI];
         case IO::SVBK:  // WRAM bank
-            return (ioReg_[IO::SVBK] | 0xF8);
+            return ioReg_[IO::SVBK];
+        case IO::ff72 ... IO::ff75:
+            return ioReg_[ioAddr];
         default:
-            break;
+            return 0xFF;
     }
-
-    return ioReg_[addr & 0x00FF];
 }
 
 void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
 {
-    switch (addr & 0xFF)
+    uint_fast8_t ioAddr = addr & 0x00FF;
+
+    switch (ioAddr)
     {
-        case IO::JOYP:
+        case IO::JOYP:  // Joypad
             ioReg_[IO::JOYP] = (0xC0 | (data & 0x30));
             SetInputs(GetButtons());
             break;
+        case IO::SB:  // Serial data
+            ioReg_[IO::SB] = data;
+            break;
         case IO::SC:  // Serial transfer control
-            if (!serialTransferInProgress_)
-            {
-                ioReg_[IO::SC] = data;
-                serialTransferCounter_ = 0;
-                serialTransferInProgress_ = (data & 0x81) == 0x81;
-                serialBitsSent_ = 0;
-            }
+            IoWriteSC(data);
             break;
         case IO::DIV:  // Divider register
             ioReg_[IO::DIV] = 0x00;
@@ -223,10 +308,59 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             ioReg_[IO::TIMA] = data;
             break;
         case IO::TAC:  // Timer control
-        {
             IoWriteTAC(data);
             break;
-        }
+        case IO::IF:  // Interrupt flag
+            ioReg_[IO::IF] = (data | 0xE0);
+            break;
+
+        case IO::NR10:  // Sound channel 1 sweep
+            break;
+        case IO::NR11:  // Sound channel 1 length timer & duty cycle
+            break;
+        case IO::NR12:  // Sound channel 1 volume & envelope
+            break;
+        case IO::NR13:  // Sound channel 1 period low
+            break;
+        case IO::NR14:  // Sound channel 1 period high & sound control
+            break;
+        case IO::NR21:  // Sound channel 2 length timer & duty cycle
+            break;
+        case IO::NR22:  // Sound channel 2 volume & envelope
+            break;
+        case IO::NR23:  // Sound channel 2 period low
+            break;
+        case IO::NR24:  // Sound channel 2 period high & control
+            break;
+        case IO::NR30:  // Sound channel 3 DAC enable
+            break;
+        case IO::NR31:  // Sound channel 3 length timer
+            break;
+        case IO::NR32:  // Sound channel 3 output level
+            break;
+        case IO::NR33:  // Sound channel 3 period low
+            break;
+        case IO::NR34:  // Sound channel 3 period high & control
+            break;
+        case IO::NR41:  // Sound channel 4 length timer
+            break;
+        case IO::NR42:  // Sound channel 4 volume & envelope
+            break;
+        case IO::NR43:  // Sound channel 4 frequency & randomness
+            break;
+        case IO::NR44:  // Sound channel 4 control
+            break;
+        case IO::NR50:  // Master volume & VIN panning
+            break;
+        case IO::NR51:  // Sound panning
+            break;
+        case IO::NR52:  // Sound on/off
+            break;
+
+        case IO::WAVE_RAM_START ... IO::WAVE_RAM_END:  // Wave RA<
+            ioReg_[ioAddr] = data;
+            break;
+
         case IO::LCDC:  // LCD control
         {
             bool currentlyEnabled = ppu_.LCDEnabled();
@@ -245,39 +379,103 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             break;
         }
         case IO::STAT:  // LCD status
-        {
             data &= 0x78;
             ioReg_[IO::STAT] &= 0x07;
-            ioReg_[IO::STAT] |= data;
+            ioReg_[IO::STAT] |= (data | 0x80);
             break;
-        }
-        case IO::LY:  // LCD Y Coordinate
+        case IO::SCY ... IO::SCX:  // Viewport position
+            ioReg_[ioAddr] = data;
+            break;
+        case IO::LY:  // LCD Y coordinate
+            break;
+        case IO::LYC:  // LY compare
+            ioReg_[IO::LYC] = data;
             break;
         case IO::DMA:  // OAM DMA source address
             IoWriteDMA(data);
             break;
+        case IO::BGP ... IO::OBP1:  // DMG palettes
+            ioReg_[ioAddr] = data;
+            break;
+        case IO::WY ... IO::WX:  // Window position
+            ioReg_[ioAddr] = data;
+            break;
+        case IO::KEY1:  // Speed switch
+            ioReg_[IO::KEY1] = (ioReg_[IO::KEY1] & 0x80) | (data & 0x01) | 0x7E;
+            break;
+        case IO::VBK:  // VRAM bank
+            ioReg_[IO::VBK] = (data | 0xFE);
+            break;
         case IO::UNMAP_BOOT_ROM:  // Boot ROM disable
-            runningBootRom_ = false;
-            cgbMode_ = cgbCartridge_;
+            if (runningBootRom_)
+            {
+                DefaultCgbIoValues();
+                runningBootRom_ = false;
+                cgbMode_ = cgbCartridge_;
+            }
+            break;
+        case IO::HDMA1 ... IO::HDMA4:  // VRAM  DMA src/dest
+            ioReg_[ioAddr] = data;
             break;
         case IO::HDMA5:  // VRAM DMA length/mode/start
             IoWriteVramDMA(data);
             break;
+        case IO::RP:  // Infrared communication port
+            break;
+        case IO::BCPS:  // Background color palette specification
+            ioReg_[IO::BCPS] = (data & 0xBF);
+            break;
         case IO::BCPD:  // Background color palette data
             IoWriteBCPD(data);
+            break;
+        case IO::OCPS:  // OBJ color palette specification
+            ioReg_[IO::OCPS] = (data & 0xBF);
             break;
         case IO::OCPD:  // OBJ color palette data
             IoWriteOCPD(data);
             break;
-        default:
-            ioReg_[addr & 0xFF] = data;
+        case IO::OPRI:  // OBJ priority mode
+            ioReg_[IO::OPRI] = data | 0xFE;
             break;
+        case IO::SVBK:  // WRAM bank
+            ioReg_[IO::SVBK] = data;
+            break;
+        case IO::ff72 ... IO::ff74:
+            ioReg_[ioAddr] = data;
+            break;
+        case IO::ff75:
+            ioReg_[IO::ff75] = data | 0x8F;
+            break;
+        default:
+            break;
+    }
+}
+
+void GameBoy::IoWriteSC(uint8_t data)
+{
+    if (!serialTransferInProgress_)
+    {
+        ioReg_[IO::SC] = (data | 0x7C);
+        serialTransferInProgress_ = (data & 0x81) == 0x81;
+        serialBitsSent_ = 0;
+
+        serialTransferCounter_ = 0;
+        bool fastClock = data & 0x02;
+
+        if (DoubleSpeedMode())
+        {
+            serialClockDivider_ = fastClock ? 2 : 4;
+        }
+        else
+        {
+            serialClockDivider_ = fastClock ? 64 : 128;
+        }
     }
 }
 
 void GameBoy::IoWriteTAC(uint8_t data)
 {
-    ioReg_[IO::TAC] = 0xF8 | (data & 0x03);
+    ioReg_[IO::TAC] = (data | 0xF8);
     timerCounter_ = 0;
     timerEnabled_ = data & 0x04;
     uint8_t clockSelect = data & 0x03;
@@ -364,6 +562,7 @@ void GameBoy::IoWriteBCPD(uint8_t data)
         {
             ioReg_[IO::BCPS] = (ioReg_[IO::BCPS] & 0xC0) | ((ioReg_[IO::BCPS] + 1) & 0x3F);
         }
+
         return;
     }
 
@@ -393,4 +592,115 @@ void GameBoy::IoWriteOCPD(uint8_t data)
     {
         ioReg_[IO::OCPS] = (ioReg_[IO::OCPS] & 0xC0) | ((ioReg_[IO::OCPS] + 1) & 0x3F);
     }
+}
+
+void GameBoy::DefaultCgbIoValues()
+{
+    ioReg_[IO::JOYP] = 0xCF;
+    ioReg_[IO::SB] = 0x00;
+    ioReg_[IO::SC] = 0x7F;
+    // ioReg[IO::DIV] = ?;
+    ioReg_[IO::TAC] = 0xF8;
+    ioReg_[IO::IF] = 0xE1;
+    ioReg_[IO::NR10] = 0x80;
+    ioReg_[IO::NR11] = 0xBF;
+    ioReg_[IO::NR12] = 0xF3;
+    ioReg_[IO::NR13] = 0xFF;
+    ioReg_[IO::NR14] = 0xBF;
+    ioReg_[IO::NR21] = 0x3F;
+    ioReg_[IO::NR23] = 0xFF;
+    ioReg_[IO::NR24] = 0xBF;
+    ioReg_[IO::NR30] = 0x7F;
+    ioReg_[IO::NR31] = 0xFF;
+    ioReg_[IO::NR32] = 0x9F;
+    ioReg_[IO::NR33] = 0xFF;
+    ioReg_[IO::NR34] = 0xBF;
+    ioReg_[IO::NR41] = 0xFF;
+    ioReg_[IO::NR44] = 0xBF;
+    ioReg_[IO::NR50] = 0x77;
+    ioReg_[IO::NR51] = 0xF3;
+    ioReg_[IO::NR52] = 0xF1;
+    ioReg_[IO::LCDC] = 0x91;
+    ioReg_[IO::BGP] = 0xFC;
+    ioReg_[IO::KEY1] = 0xFF;
+    ioReg_[IO::VBK] = 0xFF;
+    ioReg_[IO::HDMA1] = 0xFF;
+    ioReg_[IO::HDMA2] = 0xFF;
+    ioReg_[IO::HDMA3] = 0xFF;
+    ioReg_[IO::HDMA4] = 0xFF;
+    ioReg_[IO::HDMA5] = 0xFF;
+    ioReg_[IO::SVBK] = 0xFF;
+
+    ioReg_[IO::JOYP] = 0xCF;
+    ioReg_[IO::SB] = 0x00;
+    ioReg_[IO::SC] = 0x7F;
+    // ioReg_[IO::DIV] = ?;
+    ioReg_[IO::TIMA] = 0x00;
+    ioReg_[IO::TMA] = 0x00;
+    ioReg_[IO::TAC] = 0xF8;
+    ioReg_[IO::IF] = 0xE1;
+    ioReg_[IO::NR10] = 0x80;
+    ioReg_[IO::NR11] = 0xBF;
+    ioReg_[IO::NR12] = 0xF3;
+    ioReg_[IO::NR13] = 0xFF;
+    ioReg_[IO::NR14] = 0xBF;
+    ioReg_[IO::NR21] = 0x3F;
+    ioReg_[IO::NR22] = 0x00;
+    ioReg_[IO::NR23] = 0xFF;
+    ioReg_[IO::NR24] = 0xBF;
+    ioReg_[IO::NR30] = 0x7F;
+    ioReg_[IO::NR31] = 0xFF;
+    ioReg_[IO::NR32] = 0x9F;
+    ioReg_[IO::NR33] = 0xFF;
+    ioReg_[IO::NR34] = 0xBF;
+    ioReg_[IO::NR41] = 0xFF;
+    ioReg_[IO::NR42] = 0x00;
+    ioReg_[IO::NR43] = 0x00;
+    ioReg_[IO::NR44] = 0xBF;
+    ioReg_[IO::NR50] = 0x77;
+    ioReg_[IO::NR51] = 0xF3;
+    ioReg_[IO::NR52] = 0xF1;
+
+    for (uint_fast8_t i = IO::WAVE_RAM_START; i < IO::WAVE_RAM_END; ++i)
+    {
+        if ((i % 2) == 0)
+        {
+            ioReg_[i] = 0x00;
+        }
+        else
+        {
+            ioReg_[i] = 0xFF;
+        }
+    }
+
+    ioReg_[IO::LCDC] = 0x91;
+    // ioReg_[IO::STAT] = ?;
+    ioReg_[IO::SCY] = 0x00;
+    ioReg_[IO::SCX] = 0x00;
+    // ioReg_[IO::LY] = ?;
+    ioReg_[IO::LYC] = 0x00;
+    ioReg_[IO::DMA] = 0x00;
+    ioReg_[IO::BGP] = 0xFC;
+    // ioReg_[IO::OBP0] = ?;
+    // ioReg_[IO::OBP1] = ?;
+    ioReg_[IO::WY] = 0x00;
+    ioReg_[IO::WX] = 0x00;
+    ioReg_[IO::KEY1] = 0x7E;
+    ioReg_[IO::VBK] = 0xFF;
+    ioReg_[IO::HDMA1] = 0xFF;
+    ioReg_[IO::HDMA2] = 0xFF;
+    ioReg_[IO::HDMA3] = 0xFF;
+    ioReg_[IO::HDMA4] = 0xFF;
+    ioReg_[IO::HDMA5] = 0xFF;
+    ioReg_[IO::RP] = 0xFF;
+    // ioReg_[IO::BCPS] = ?;
+    // ioReg_[IO::BCPD] = ?;
+    // ioReg_[IO::OCPS] = ?;
+    // ioReg_[IO::OCPD] = ?;
+    // ioReg_[IO::OPRI] = ?;
+    ioReg_[IO::SVBK] = 0xFF;
+    ioReg_[IO::ff72] = 0x00;
+    ioReg_[IO::ff73] = 0x00;
+    ioReg_[IO::ff74] = 0xFF;
+    ioReg_[IO::ff75] = 0x8F;
 }

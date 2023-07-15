@@ -21,7 +21,10 @@ public:
     /// @brief Create an instance of a Sharp SM83 CPU.
     /// @param readFunction Function wrapper to handle reads.
     /// @param writeFunction Function wrapper to handle writes.
-    CPU(std::function<uint8_t(uint16_t)> readFunction, std::function<void(uint16_t, uint8_t)> writeFunction);
+    CPU(std::function<uint8_t(uint16_t)> readFunction,
+        std::function<void(uint16_t, uint8_t)> writeFunction,
+        std::function<void()> acknowledgeInterruptFunction,
+        std::function<std::pair<bool, bool>(bool)> stopFunction);
 
     /// @brief Default CPU destructor.
     ~CPU() = default;
@@ -29,8 +32,10 @@ public:
     /// @brief Run the CPU for 1 M-cycle.
     /// @param interruptInfo If an interrupt is pending, provide the interrupt address to jump to and how many interrupts in total
     ///                      are pending.
-    /// @return Whether this clock cycle acknowledged an interrupt.
-    bool Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo);
+    void Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo);
+
+    /// @brief Use to force exit halt mode.
+    void ExitHalt() { halted_ = false; }
 
     /// @brief Reset the state of the CPU to as if it just started.
     /// @param bootRom Used to decided where to set PC.
@@ -42,6 +47,12 @@ private:
 
     /// @brief Wrapper for Write function.
     std::function<void(uint16_t, uint8_t)> Write;
+
+    /// @brief Function to call when servicing an interrupt.
+    std::function<void()> AcknowledgeInterrupt;
+
+    /// @brief Wrapper for function to call when executing Stop command.
+    std::function<std::pair<bool, bool>(bool)> ReportStop;
 
     /// @brief Read the PC, then increment it.
     /// @return The value pointed to by the current PC address.
