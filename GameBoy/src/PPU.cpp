@@ -25,22 +25,6 @@ PPU::PPU(PPU_REG reg,
 
 void PPU::Clock(bool const oamDmaInProgress)
 {
-    if (!LCDEnabled())
-    {
-        if (!frameReady_)
-        {
-            ++disabledDots_;
-
-            if (disabledDots_ == 65664)
-            {
-                frameReady_ = true;
-                disabledDots_ = 0;
-            }
-        }
-
-        return;
-    }
-
     ++dot_;
 
     if (dot_ == 457)
@@ -97,7 +81,7 @@ void PPU::Clock(bool const oamDmaInProgress)
 
     SetLYC();
 
-    if ((GetMode() == 3) && (dot_ > 84))
+    if (((reg_.STAT & 0x03) == 0x03) && (dot_ > 84))
     {
         auto pixel = pixelFifoPtr_->Clock();
 
@@ -119,7 +103,6 @@ void PPU::Reset()
     frameReady_ = false;
     vBlank_ = false;
     wyCondition_ = false;
-    disabledDots_ = 0;
     currentSprites_.clear();
     SetMode(2);
 }
@@ -182,13 +165,19 @@ void PPU::OamScan(bool const oamDmaInProgress)
 
 void PPU::RenderPixel(Pixel pixel)
 {
-    if (cgbMode_)
+    if (!LCDEnabled())
+    {
+        frameBuffer_[framePointer_++] = 0xFF;
+        frameBuffer_[framePointer_++] = 0xFF;
+        frameBuffer_[framePointer_++] = 0xFF;
+    }
+    else if (cgbMode_)
     {
         if (pixel.src == PixelSource::BLANK)
         {
-            frameBuffer_[framePointer_++] = 255;
-            frameBuffer_[framePointer_++] = 255;
-            frameBuffer_[framePointer_++] = 255;
+            frameBuffer_[framePointer_++] = 0xFF;
+            frameBuffer_[framePointer_++] = 0xFF;
+            frameBuffer_[framePointer_++] = 0xFF;
         }
         else
         {

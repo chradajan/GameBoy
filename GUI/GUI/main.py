@@ -36,7 +36,10 @@ def main(rom_path: bytes):
 
         joypad = controller.get_joypad()
         GAME_BOY.SetInputs(joypad.down, joypad.up, joypad.left, joypad.right, joypad.start, joypad.select, joypad.b, joypad.a)
-        GAME_BOY.Run()
+
+        while not GAME_BOY.FrameReady():
+            GAME_BOY.Clock()
+
         sdl_video.update_screen(renderer)
 
         frame_time = SDL_GetTicks64() - start_time

@@ -45,9 +45,19 @@ void PowerOff()
     gb.reset();
 }
 
-void Run()
+void Clock()
 {
-    gb->Run();
+    gb->Clock();
+}
+
+bool FrameReady()
+{
+    return gb->FrameReady();
+}
+
+float GetAudioSample()
+{
+    return gb->GetAudioSample();
 }
 
 void SetInputs(bool const down,

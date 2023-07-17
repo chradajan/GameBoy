@@ -173,7 +173,7 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
         case IO::SC:  // Serial transfer control
             return ioReg_[IO::SC];
         case IO::DIV:  // Divider register
-            return ioReg_[IO::DIV];
+            return apu_.GetDIV();
         case IO::TIMA: // Timer counter
             return ioReg_[IO::TIMA];
         case IO::TMA:  // Timer modulo
@@ -182,42 +182,10 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
             return ioReg_[IO::TAC];
         case IO::IF:  // Interrupt flag
             return ioReg_[IO::IF];
-        
-        case IO::NR10:  // Sound channel 1 sweep
-            return 0xFF;
-        case IO::NR11:  // Sound channel 1 length timer & duty cycle
-            return 0xFF;
-        case IO::NR12:  // Sound channel 1 volume & envelope
-            return 0xFF;
-        case IO::NR14:  // Sound channel 1 period high & sound control
-            return 0xFF;
-        case IO::NR21:  // Sound channel 2 length timer & duty cycle
-            return 0xFF;
-        case IO::NR22:  // Sound channel 2 volume & envelope
-            return 0xFF;
-        case IO::NR24:  // Sound channel 2 period high & control
-            return 0xFF;
-        case IO::NR30:  // Sound channel 3 DAC enable
-            return 0xFF;
-        case IO::NR32:  // Sound channel 3 output level
-            return 0xFF;
-        case IO::NR34:  // Sound channel 3 period high & control
-            return 0xFF;
-        case IO::NR42:  // Sound channel 4 volume & envelope
-            return 0xFF;
-        case IO::NR43:  // Sound channel 4 frequency & randomness
-            return 0xFF;
-        case IO::NR44:  // Sound channel 4 control
-            return 0xFF;
-        case IO::NR50:  // Master volume & VIN panning
-            return 0xFF;
-        case IO::NR51:  // Sound panning
-            return 0xFF;
-        case IO::NR52:  // Sound on/off
-            return 0xFF;
 
-        case IO::WAVE_RAM_START ... IO::WAVE_RAM_END:  // Wave RAM
-            return ioReg_[ioAddr];
+        case IO::NR10 ... IO::WAVE_RAM_END:
+            return apu_.Read(ioAddr);
+
         case IO::LCDC:  // LCD control
             return ioReg_[IO::LCDC];
         case IO::STAT:  // LCD Status
@@ -299,9 +267,8 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             IoWriteSC(data);
             break;
         case IO::DIV:  // Divider register
-            ioReg_[IO::DIV] = 0x00;
+            apu_.ResetDIV(DoubleSpeedMode());
             timerCounter_ = 0;
-            divCounter_ = 0;
             break;
         case IO::TIMA:  // Timer counter
             timerReload_ = false;
@@ -314,51 +281,8 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             ioReg_[IO::IF] = (data | 0xE0);
             break;
 
-        case IO::NR10:  // Sound channel 1 sweep
-            break;
-        case IO::NR11:  // Sound channel 1 length timer & duty cycle
-            break;
-        case IO::NR12:  // Sound channel 1 volume & envelope
-            break;
-        case IO::NR13:  // Sound channel 1 period low
-            break;
-        case IO::NR14:  // Sound channel 1 period high & sound control
-            break;
-        case IO::NR21:  // Sound channel 2 length timer & duty cycle
-            break;
-        case IO::NR22:  // Sound channel 2 volume & envelope
-            break;
-        case IO::NR23:  // Sound channel 2 period low
-            break;
-        case IO::NR24:  // Sound channel 2 period high & control
-            break;
-        case IO::NR30:  // Sound channel 3 DAC enable
-            break;
-        case IO::NR31:  // Sound channel 3 length timer
-            break;
-        case IO::NR32:  // Sound channel 3 output level
-            break;
-        case IO::NR33:  // Sound channel 3 period low
-            break;
-        case IO::NR34:  // Sound channel 3 period high & control
-            break;
-        case IO::NR41:  // Sound channel 4 length timer
-            break;
-        case IO::NR42:  // Sound channel 4 volume & envelope
-            break;
-        case IO::NR43:  // Sound channel 4 frequency & randomness
-            break;
-        case IO::NR44:  // Sound channel 4 control
-            break;
-        case IO::NR50:  // Master volume & VIN panning
-            break;
-        case IO::NR51:  // Sound panning
-            break;
-        case IO::NR52:  // Sound on/off
-            break;
-
-        case IO::WAVE_RAM_START ... IO::WAVE_RAM_END:  // Wave RA<
-            ioReg_[ioAddr] = data;
+        case IO::NR10 ... IO::WAVE_RAM_END:
+            apu_.Write(ioAddr, data);
             break;
 
         case IO::LCDC:  // LCD control
@@ -370,7 +294,6 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             {
                 ppu_.Reset();
                 ioReg_[IO::STAT] &= 0x7C;
-                ioReg_[IO::IF] &= ~INT_SRC::LCD_STAT;
             }
             else if (!currentlyEnabled && ppu_.LCDEnabled())
             {
@@ -610,9 +533,6 @@ void GameBoy::SetDefaultCgbIoValues()
     ioReg_[IO::NR12] = 0xF3;
     ioReg_[IO::NR13] = 0xFF;
     ioReg_[IO::NR14] = 0xBF;
-    ioReg_[IO::NR21] = 0x3F;
-    ioReg_[IO::NR23] = 0xFF;
-    ioReg_[IO::NR24] = 0xBF;
     ioReg_[IO::NR30] = 0x7F;
     ioReg_[IO::NR31] = 0xFF;
     ioReg_[IO::NR32] = 0x9F;

@@ -37,6 +37,7 @@ void GameBoy::RunMCycle()
                     ClockVariableSpeedComponents(clockCpu);
                 }
 
+                apu_.Clock();
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             case 3:
@@ -81,6 +82,7 @@ void GameBoy::ClockVariableSpeedComponents(bool const clockCpu)
         ClockOamDma();
     }
 
+    apu_.ClockDIV(DoubleSpeedMode());
     ClockTimer();
 }
 
@@ -88,13 +90,7 @@ void GameBoy::ClockTimer()
 {
     if (speedSwitchCountdown_ == 0)
     {
-        ++divCounter_;
-
-        if (divCounter_ == 64)
-        {
-            ++ioReg_[IO::DIV];
-            divCounter_ = 0;
-        }
+        apu_.ClockDIV(DoubleSpeedMode());
     }
 
     if (timerEnabled_)

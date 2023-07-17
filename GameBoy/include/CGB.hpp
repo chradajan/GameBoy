@@ -15,7 +15,11 @@ void PowerOn();
 
 void PowerOff();
 
-void Run();
+void Clock();
+
+bool FrameReady();
+
+float GetAudioSample();
 
 void SetInputs(bool down, bool up, bool left, bool right, bool start, bool select, bool b, bool a);
 }

@@ -7,10 +7,12 @@ project (GameBoy
 )
 
 set(SOURCES
-    src/CGB.cpp
+    src/APU.cpp
     src/Cartridge/MBC0.cpp
     src/Cartridge/MBC1.cpp
     src/Cartridge/MBC5.cpp
+    src/CGB.cpp
+    src/Channel2.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp
     src/GameBoy.cpp

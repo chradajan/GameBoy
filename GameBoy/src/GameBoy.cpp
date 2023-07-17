@@ -138,28 +138,14 @@ void GameBoy::PowerOn()
     Reset();
 }
 
-void GameBoy::Run()
+void GameBoy::Clock()
 {
     if (!cartridge_ && !runningBootRom_)
     {
         return;
     }
 
-    while (!ppu_.FrameReady())
-    {
-        if (!stopped_)
-        {
-            RunMCycle();
-        }
-    }
-
-    if (!ppu_.LCDEnabled())
-    {
-        for (size_t i = 0; i < FRAME_BUFFER_SIZE; ++i)
-        {
-            frameBuffer_[i] = 0xFF;
-        }
-    }
+    RunMCycle();
 }
 
 void GameBoy::SetInputs(bool const down,
@@ -276,7 +262,6 @@ void GameBoy::Reset()
     serialClockDivider_ = 128;
     serialTransferInProgress_ = false;
 
-    divCounter_ = 0;
     timerCounter_ = 0;
     timerControl_ = 0;
     timerEnabled_ = false;
@@ -299,6 +284,7 @@ void GameBoy::Reset()
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
 
+    apu_.Reset();
     cpu_.Reset(runningBootRom_);
     ppu_.Reset();
 }
@@ -446,7 +432,7 @@ std::pair<bool, bool> GameBoy::Stop(bool const IME)
             {
                 SwitchSpeedMode();
                 ioReg_[IO::KEY1] &= 0xFE;
-                ioReg_[IO::DIV] = 0;
+                apu_.ResetDIV(DoubleSpeedMode());
                 twoByteOpcode = false;
                 enterHaltMode = false;
             }
@@ -454,7 +440,7 @@ std::pair<bool, bool> GameBoy::Stop(bool const IME)
         else
         {
             // Good path for speed switch.
-            ioReg_[IO::DIV] = 0;
+            apu_.ResetDIV(DoubleSpeedMode());
             SwitchSpeedMode();  //
             ioReg_[IO::KEY1] &= 0xFE;  //
             speedSwitchCountdown_ = 2050;
@@ -464,7 +450,7 @@ std::pair<bool, bool> GameBoy::Stop(bool const IME)
     }
     else
     {
-        ioReg_[IO::DIV] = 0;
+        apu_.ResetDIV(DoubleSpeedMode());
         twoByteOpcode = !interruptPending;
         enterHaltMode = false;
         stopped_ = true;

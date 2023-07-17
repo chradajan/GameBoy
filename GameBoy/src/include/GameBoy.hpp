@@ -1,6 +1,7 @@
 #pragma once
 
 #include <Cartridge/Cartridge.hpp>
+#include <APU.hpp>
 #include <CPU.hpp>
 #include <PPU.hpp>
 #include <array>
@@ -151,9 +152,13 @@ public:
     /// @brief Prepare the GameBoy to be run.
     void PowerOn();
 
-    /// @brief Run the GameBoy until a new frame is ready to be displayed.
+    /// @brief Run the GameBoy for one machine cycle.
     /// @pre Initialize, InsertCartridge, and PowerOn must have been called.
-    void Run();
+    void Clock();
+
+    bool FrameReady() { return ppu_.FrameReady(); }
+
+    float GetAudioSample() { return apu_.GetSample(); }
 
     /// @brief Update JOYP based on which buttons are pressed and which buttons are selected to read. If stop mode is active and a
     ///        button is pressed, exit stop mode.
@@ -291,7 +296,6 @@ private:
     bool serialTransferInProgress_;
 
     // Timer
-    uint8_t divCounter_;
     uint16_t timerCounter_;
     uint16_t timerControl_;
     bool timerEnabled_;
@@ -327,6 +331,7 @@ private:
     bool prevStatState_;
 
     // Components
+    APU apu_;
     CPU cpu_;
     PPU ppu_;
     std::unique_ptr<Cartridge> cartridge_;

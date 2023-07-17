@@ -50,7 +50,7 @@ public:
     bool FrameReady();
     bool VBlank();
 
-    uint8_t GetMode() const { return reg_.STAT & 0x03; }
+    uint8_t GetMode() const { return LCDEnabled() ? (reg_.STAT & 0x03) : 0x00; }
 
     void SetDmgColorMode(bool useDmgColors) { useDmgColors_ = useDmgColors; }
 
@@ -101,7 +101,6 @@ private:
     bool vBlank_;
     bool wyCondition_;
     bool useDmgColors_;
-    uint32_t disabledDots_;
 
     std::vector<OamEntry> currentSprites_;
 
