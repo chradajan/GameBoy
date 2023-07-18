@@ -17,7 +17,7 @@ def initialize_sdl_video() -> tuple:
                               SDL_WINDOWPOS_UNDEFINED,
                               WIDTH * WINDOW_SCALE,
                               HEIGHT * WINDOW_SCALE,
-                              SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI)
+                              SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI)
 
     SDL_SetWindowMinimumSize(window, WIDTH * 2, HEIGHT * 2)
     SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, b"0")

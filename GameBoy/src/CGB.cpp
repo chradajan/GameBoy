@@ -9,7 +9,6 @@ constexpr int SAMPLE_RATE = 44100;
 constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 constexpr int CPU_CLOCK_FREQUENCY = 1048576;
 constexpr float CPU_CLOCK_PERIOD = 1.0 / CPU_CLOCK_FREQUENCY;
-constexpr int AUDIO_BUFFER_SIZE = 256;
 
 void Initialize(uint8_t* frameBuffer,
                 char* const logPath,
@@ -60,12 +59,7 @@ bool FrameReady()
     return gb->FrameReady();
 }
 
-// int16_t GetAudioSample()
-// {
-//     return gb->GetAudioSample();
-// }
-
-float GetAudioSample()
+void GetAudioSample(float* left, float* right)
 {
     static float audioTime = 0.0;
 
@@ -77,7 +71,7 @@ float GetAudioSample()
 
     audioTime -= SAMPLE_PERIOD;
 
-    return gb->GetAudioSample();
+    gb->GetAudioSample(left, right);
 }
 
 void SetInputs(bool const down,

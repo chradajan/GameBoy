@@ -158,7 +158,7 @@ public:
 
     bool FrameReady() { return ppu_.FrameReady(); }
 
-    float GetAudioSample() { return apu_.GetSample(); }
+    void GetAudioSample(float* left, float* right) { apu_.GetAudioSample(left, right); }
 
     /// @brief Update JOYP based on which buttons are pressed and which buttons are selected to read. If stop mode is active and a
     ///        button is pressed, exit stop mode.

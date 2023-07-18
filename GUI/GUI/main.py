@@ -8,28 +8,28 @@ import sys
 FPS = 60
 TIME_PER_FRAME = 1000 // 60
 SAMPLE_RATE = 44100
-AUDIO_BUFFER_SIZE = 256
+AUDIO_BUFFER_SIZE = 512
 
 LOG_PATH = ctypes.create_string_buffer(b"./logs/")
 SAVE_PATH = ctypes.create_string_buffer(b"./saves/")
 BOOT_ROM_PATH = ctypes.create_string_buffer(b"./boot/")
 
 GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
-GAME_BOY.GetAudioSample.restype = ctypes.c_float
+GAME_BOY.GetAudioSample.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
 RENDERER = None
 
 @ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(sdl2.Uint8), ctypes.c_int)
 def audio_callback(userdata, stream, len):
     buffer = ctypes.cast(stream, ctypes.POINTER(ctypes.c_float))
     num_samples = (len // ctypes.sizeof(ctypes.c_float))
-    updated_screen = False
+    # updated_screen = False
+    left = ctypes.c_float(0.0)
+    right = ctypes.c_float(0.0)
 
-    for i in range(num_samples):
-        buffer[i] = GAME_BOY.GetAudioSample()
-
-        if not updated_screen and GAME_BOY.FrameReady():
-            sdl_video.update_screen(RENDERER)
-            updated_screen = True
+    for i in range(0, num_samples, 2):
+        GAME_BOY.GetAudioSample(ctypes.byref(left), ctypes.byref(right))
+        buffer[i] = left
+        buffer[i+1] = right
 
 def main(rom_path: bytes):
     global RENDERER
@@ -40,7 +40,7 @@ def main(rom_path: bytes):
     audio_spec = sdl2.SDL_AudioSpec(0, 0, 0, 0)
     audio_spec.freq = SAMPLE_RATE
     audio_spec.format = sdl2.AUDIO_F32SYS
-    audio_spec.channels = 1
+    audio_spec.channels = 2
     audio_spec.samples = AUDIO_BUFFER_SIZE
     audio_spec.callback = audio_callback
     audio_device = sdl2.SDL_OpenAudioDevice(None, 0, audio_spec, None, 0)
@@ -65,6 +65,10 @@ def main(rom_path: bytes):
 
         joypad = controller.get_joypad()
         GAME_BOY.SetInputs(joypad.down, joypad.up, joypad.left, joypad.right, joypad.start, joypad.select, joypad.b, joypad.a)
+
+        if (GAME_BOY.FrameReady()):
+            sdl_video.update_screen(RENDERER)
+
         sdl2.SDL_Delay(1)
 
     sdl2.SDL_UnlockAudioDevice(audio_device)

@@ -1,6 +1,6 @@
 #include <Channel2.hpp>
 
-constexpr bool DUTY_CYCLE[4][8] = {
+constexpr uint8_t DUTY_CYCLE[4][8] = {
     {1, 1, 1, 1, 1, 1, 1, 0},
     {1, 1, 1, 1, 1, 1, 0, 0},
     {1, 1, 1, 1, 0, 0, 0, 0},
@@ -31,38 +31,26 @@ void Channel2::ApuDiv()
         if (lengthTimer_ == 64)
         {
             SetLengthTimer();
-
-            if (SoundLengthEnable())
-            {
-                lengthTimerExpired_ = true;
-            }
+            lengthTimerExpired_ = true;
         }
     }
 
     if (envelopeDivider_ == 8)  // 64 Hz
     {
         envelopeDivider_ = 0;
+        ++sweepCount_;
 
-        if (increaseEnvelope_)
+        if ((sweepCount_ == sweepPace_) && (sweepPace_ != 0))
         {
-            if (volume_ + sweepPace_ > 0x0F)
+            sweepCount_ = 0;
+
+            if (increaseEnvelope_ && (volume_ < 0x0F))
             {
-                volume_ = 0x0F;
+                ++volume_;
             }
-            else
+            else if (!increaseEnvelope_ && (volume_ > 0x00))
             {
-                volume_ += sweepPace_;
-            }
-        }
-        else
-        {
-            if (sweepPace_ > volume_)
-            {
-                volume_ = 0x00;
-            }
-            else
-            {
-                volume_ -= sweepPace_;
+                --volume_;
             }
         }
     }
@@ -70,21 +58,7 @@ void Channel2::ApuDiv()
 
 float Channel2::GetSample()
 {
-    if (dacEnabled_ && !lengthTimerExpired_)
-    {
-        float output = ((volume_ / 7.5) - 1.0);
-
-        if (DUTY_CYCLE[dutyCycle_][dutyStep_])
-        {
-            return output;
-        }
-        else
-        {
-            return -output;
-        }
-    }
-
-    return 0.0;
+    return Enabled() ? (((volume_ * DUTY_CYCLE[dutyCycle_][dutyStep_]) / 7.5) - 1.0) : 0.0;
 }
 
 void Channel2::Reset()
@@ -157,8 +131,9 @@ void Channel2::Trigger()
     volume_ = (NR22_ & 0xF0) >> 4;
     increaseEnvelope_ = NR22_ & 0x08;
     sweepPace_ = NR22_ & 0x07;
+    sweepCount_ = 0;
     envelopeDivider_ = 0;
-    dacEnabled_ = DACEnabled();
+    dacEnabled_ = (NR22_ & 0xF8) != 0x00;
 
     SetPeriod();
     periodCounter_ = period_;

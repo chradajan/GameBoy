@@ -8,6 +8,9 @@ public:
     void Clock();
     void ApuDiv();
 
+    bool Enabled() { return dacEnabled_ && (!SoundLengthEnable() || !lengthTimerExpired_); }
+    bool DACEnabled() { return dacEnabled_; }
+
     float GetSample();
 
     uint8_t Read(uint8_t ioAddr);
@@ -22,7 +25,6 @@ private:
     void SetLengthTimer() { lengthTimer_ = NR21_ & 0x3F; }
     void SetPeriod() { period_ = ((NR24_ & 0x07) << 8) | NR23_; }
     bool SoundLengthEnable() { return NR24_ & 0x40; }
-    bool DACEnabled() { return NR22_ & 0xF8; }
 
     // Registers
     uint8_t NR21_;  // Length timer & duty cycle
@@ -41,6 +43,7 @@ private:
     uint8_t volume_;
     bool increaseEnvelope_;
     uint8_t sweepPace_;
+    uint8_t sweepCount_;
     uint8_t envelopeDivider_;
     bool dacEnabled_;
 
