@@ -5,6 +5,11 @@
 #include <memory>
 
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
+constexpr int SAMPLE_RATE = 44100;
+constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
+constexpr int CPU_CLOCK_FREQUENCY = 1048576;
+constexpr float CPU_CLOCK_PERIOD = 1.0 / CPU_CLOCK_FREQUENCY;
+constexpr int AUDIO_BUFFER_SIZE = 256;
 
 void Initialize(uint8_t* frameBuffer,
                 char* const logPath,
@@ -55,8 +60,23 @@ bool FrameReady()
     return gb->FrameReady();
 }
 
+// int16_t GetAudioSample()
+// {
+//     return gb->GetAudioSample();
+// }
+
 float GetAudioSample()
 {
+    static float audioTime = 0.0;
+
+    while (audioTime < SAMPLE_PERIOD)
+    {
+        gb->Clock();
+        audioTime += CPU_CLOCK_PERIOD;
+    }
+
+    audioTime -= SAMPLE_PERIOD;
+
     return gb->GetAudioSample();
 }
 

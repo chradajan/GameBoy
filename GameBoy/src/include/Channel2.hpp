@@ -8,7 +8,7 @@ public:
     void Clock();
     void ApuDiv();
 
-    uint8_t GetSample();
+    float GetSample();
 
     uint8_t Read(uint8_t ioAddr);
     void Write(uint8_t ioAddr, uint8_t data);
@@ -22,6 +22,7 @@ private:
     void SetLengthTimer() { lengthTimer_ = NR21_ & 0x3F; }
     void SetPeriod() { period_ = ((NR24_ & 0x07) << 8) | NR23_; }
     bool SoundLengthEnable() { return NR24_ & 0x40; }
+    bool DACEnabled() { return NR22_ & 0xF8; }
 
     // Registers
     uint8_t NR21_;  // Length timer & duty cycle
@@ -31,7 +32,7 @@ private:
 
     // State
     uint8_t dutyCycle_;
-    uint8_t dutyCycleIndex_;
+    uint8_t dutyStep_;
 
     uint8_t lengthTimer_;
     uint8_t lengthTimerDivider_;

@@ -13,7 +13,7 @@ void Channel2::Clock()
 
     if (periodCounter_ == 0x800)
     {
-        dutyCycleIndex_ = (dutyCycleIndex_ + 1) & 0x03;
+        dutyStep_ = (dutyStep_ + 1) % 8;
         periodCounter_ = period_;
     }
 }
@@ -68,14 +68,23 @@ void Channel2::ApuDiv()
     }
 }
 
-uint8_t Channel2::GetSample()
+float Channel2::GetSample()
 {
-    if (dacEnabled_ && !lengthTimerExpired_ && DUTY_CYCLE[dutyCycle_][dutyCycleIndex_])
+    if (dacEnabled_ && !lengthTimerExpired_)
     {
-        return volume_;
+        float output = ((volume_ / 7.5) - 1.0);
+
+        if (DUTY_CYCLE[dutyCycle_][dutyStep_])
+        {
+            return output;
+        }
+        else
+        {
+            return -output;
+        }
     }
 
-    return 0x00;
+    return 0.0;
 }
 
 void Channel2::Reset()
@@ -139,17 +148,17 @@ void Channel2::Write(uint8_t ioAddr, uint8_t data)
 void Channel2::Trigger()
 {
     SetDutyCycle();
-    dutyCycleIndex_ = 0;
+    dutyStep_ = 0;
 
     SetLengthTimer();
     lengthTimerDivider_ = 0;
     lengthTimerExpired_ = false;
 
-    volume_ = NR22_ & 0xF0;
+    volume_ = (NR22_ & 0xF0) >> 4;
     increaseEnvelope_ = NR22_ & 0x08;
     sweepPace_ = NR22_ & 0x07;
     envelopeDivider_ = 0;
-    dacEnabled_ = volume_ || increaseEnvelope_;
+    dacEnabled_ = DACEnabled();
 
     SetPeriod();
     periodCounter_ = period_;

@@ -24,6 +24,7 @@ void GameBoy::RunMCycle()
 
                 ClockVariableSpeedComponents(clockCpu);
 
+                apu_.Clock();
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             }
@@ -37,7 +38,6 @@ void GameBoy::RunMCycle()
                     ClockVariableSpeedComponents(clockCpu);
                 }
 
-                apu_.Clock();
                 ppu_.Clock(oamDmaInProgress_);
                 break;
             case 3:

@@ -7,9 +7,8 @@ void APU::Clock()
 
 float APU::GetSample()
 {
-    uint_fast8_t channel2Sample = channel2_.GetSample();
-
-    return (channel2Sample / 7.5) - 1.0;
+    float channel2Sample = channel2_.GetSample();
+    return channel2Sample;
 }
 
 void APU::ClockDIV(bool const doubleSpeed)

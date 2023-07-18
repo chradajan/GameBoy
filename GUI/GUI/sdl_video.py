@@ -12,8 +12,6 @@ WINDOW_SCALE = 4
 FRAME_BUFFER = (ctypes.c_uint8 * BUFFER_SIZE)()
 
 def initialize_sdl_video() -> tuple:
-    SDL_Init(SDL_INIT_VIDEO)
-
     window = SDL_CreateWindow(b"GameBoy",
                               SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED,

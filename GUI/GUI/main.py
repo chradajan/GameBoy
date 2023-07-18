@@ -1,20 +1,50 @@
 import controller
 import sdl_video
 import ctypes
+import sdl2
+import sdl2.ext
 import sys
-from sdl2 import *
 
 FPS = 60
 TIME_PER_FRAME = 1000 // 60
+SAMPLE_RATE = 44100
+AUDIO_BUFFER_SIZE = 256
 
 LOG_PATH = ctypes.create_string_buffer(b"./logs/")
 SAVE_PATH = ctypes.create_string_buffer(b"./saves/")
 BOOT_ROM_PATH = ctypes.create_string_buffer(b"./boot/")
 
-def main(rom_path: bytes):
-    window, renderer = sdl_video.initialize_sdl_video()
+GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
+GAME_BOY.GetAudioSample.restype = ctypes.c_float
+RENDERER = None
 
-    GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
+@ctypes.CFUNCTYPE(None, ctypes.c_void_p, ctypes.POINTER(sdl2.Uint8), ctypes.c_int)
+def audio_callback(userdata, stream, len):
+    buffer = ctypes.cast(stream, ctypes.POINTER(ctypes.c_float))
+    num_samples = (len // ctypes.sizeof(ctypes.c_float))
+    updated_screen = False
+
+    for i in range(num_samples):
+        buffer[i] = GAME_BOY.GetAudioSample()
+
+        if not updated_screen and GAME_BOY.FrameReady():
+            sdl_video.update_screen(RENDERER)
+            updated_screen = True
+
+def main(rom_path: bytes):
+    global RENDERER
+
+    sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_AUDIO)
+    window, RENDERER = sdl_video.initialize_sdl_video()
+
+    audio_spec = sdl2.SDL_AudioSpec(0, 0, 0, 0)
+    audio_spec.freq = SAMPLE_RATE
+    audio_spec.format = sdl2.AUDIO_F32SYS
+    audio_spec.channels = 1
+    audio_spec.samples = AUDIO_BUFFER_SIZE
+    audio_spec.callback = audio_callback
+    audio_device = sdl2.SDL_OpenAudioDevice(None, 0, audio_spec, None, 0)
+
     GAME_BOY.Initialize(sdl_video.FRAME_BUFFER, LOG_PATH, SAVE_PATH, BOOT_ROM_PATH)
 
     if rom_path:
@@ -24,32 +54,24 @@ def main(rom_path: bytes):
     GAME_BOY.PowerOn()
 
     running = True
-    event = SDL_Event()
+    event = sdl2.SDL_Event()
+    sdl2.SDL_PauseAudioDevice(audio_device, 0)
 
     while running:
-        start_time = SDL_GetTicks64()
-
-        while SDL_PollEvent(ctypes.byref(event)) != 0:
-            if event.type == SDL_QUIT:
+        while sdl2.SDL_PollEvent(ctypes.byref(event)) != 0:
+            if event.type == sdl2.SDL_QUIT:
                 running = False
                 break
 
         joypad = controller.get_joypad()
         GAME_BOY.SetInputs(joypad.down, joypad.up, joypad.left, joypad.right, joypad.start, joypad.select, joypad.b, joypad.a)
+        sdl2.SDL_Delay(1)
 
-        while not GAME_BOY.FrameReady():
-            GAME_BOY.Clock()
-
-        sdl_video.update_screen(renderer)
-
-        frame_time = SDL_GetTicks64() - start_time
-
-        if frame_time < TIME_PER_FRAME:
-            SDL_Delay(TIME_PER_FRAME - frame_time)
-
-    SDL_DestroyRenderer(renderer)
-    SDL_DestroyWindow(window)
-    SDL_Quit()
+    sdl2.SDL_UnlockAudioDevice(audio_device)
+    sdl2.SDL_CloseAudioDevice(audio_device)
+    sdl2.SDL_DestroyRenderer(RENDERER)
+    sdl2.SDL_DestroyWindow(window)
+    sdl2.SDL_Quit()
     GAME_BOY.PowerOff()
 
     return 0
