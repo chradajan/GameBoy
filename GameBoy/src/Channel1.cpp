@@ -98,7 +98,7 @@ float Channel1::GetSample() const
         return 0.0;
     }
 
-    uint_fast8_t volume = (frequencySweepOverflow_ || (SoundLengthTimerEnabled() && lengthTimerExpired_)) ? 0x00 : currentVolume_;
+    uint_fast8_t volume = (frequencySweepOverflow_ || lengthTimerExpired_) ? 0x00 : currentVolume_;
     return ((volume * DUTY_CYCLE[GetDutyCycle()][dutyStep_]) / 7.5) - 1.0;
 }
 
@@ -191,7 +191,6 @@ void Channel1::Trigger()
     volumeSweepPace_ = NR12_ & 0x07;
     volumeSweepDivider_ = 0;
     dacEnabled_ = (NR12_ & 0xF8) != 0x00;
-
 
     periodDivider_ = GetPeriod();
 }

@@ -184,7 +184,7 @@ void APU::AdvanceFrameSequencer()
     ++soundLengthDivider_;
     ++ch1FreqDivider_;
 
-    if (envelopeDivider_ == 8)  // 64 Hz
+    if (envelopeDivider_ == 12)  // 64 Hz
     {
         envelopeDivider_ = 0;
         channel1_.ClockEnvelope();
