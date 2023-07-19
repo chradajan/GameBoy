@@ -37,7 +37,7 @@ void Channel2::ClockEnvelope()
 
 void Channel2::ClockLengthTimer()
 {
-    if (lengthTimerExpired_)
+    if (lengthTimerExpired_ || !SoundLengthTimerEnabled())
     {
         return;
     }

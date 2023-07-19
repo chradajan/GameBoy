@@ -37,7 +37,7 @@ void Channel1::ClockEnvelope()
 
 void Channel1::ClockLengthTimer()
 {
-    if (lengthTimerExpired_)
+    if (lengthTimerExpired_ || !SoundLengthTimerEnabled())
     {
         return;
     }
@@ -167,11 +167,11 @@ void Channel1::Write(uint8_t ioAddr, uint8_t data)
 
 void Channel1::Reset()
 {
-    NR10_ = 0x00;
-    NR11_ = 0x00;
-    NR12_ = 0x00;
-    NR13_ = 0x00;
-    NR14_ = 0x00;
+    NR10_ = 0x80;
+    NR11_ = 0xBF;
+    NR12_ = 0xF3;
+    NR13_ = 0xFF;
+    NR14_ = 0xBF;
     dutyStep_ = 0;
     dacEnabled_ = false;
 }
@@ -191,6 +191,7 @@ void Channel1::Trigger()
     volumeSweepPace_ = NR12_ & 0x07;
     volumeSweepDivider_ = 0;
     dacEnabled_ = (NR12_ & 0xF8) != 0x00;
+
 
     periodDivider_ = GetPeriod();
 }
