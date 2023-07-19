@@ -2,6 +2,7 @@
 
 #include <Channel1.hpp>
 #include <Channel2.hpp>
+#include <Channel4.hpp>
 #include <cstdint>
 
 class APU
@@ -54,4 +55,5 @@ private:
     // Channels
     Channel1 channel1_;
     Channel2 channel2_;
+    Channel4 channel4_;
 };

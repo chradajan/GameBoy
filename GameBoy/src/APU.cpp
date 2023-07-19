@@ -9,11 +9,12 @@ void APU::Clock()
 
     channel1_.Clock();
     channel2_.Clock();
+    channel4_.Clock();
 }
 
 void APU::GetAudioSample(float* left, float* right)
 {
-    bool allDACsDisabled = !channel1_.DACEnabled() && !channel2_.DACEnabled();
+    bool allDACsDisabled = !channel1_.DACEnabled() && !channel2_.DACEnabled() && !channel4_.DACEnabled();
 
     if (!apuEnabled_ || allDACsDisabled)
     {
@@ -24,6 +25,7 @@ void APU::GetAudioSample(float* left, float* right)
 
     float channel1Sample = channel1_.GetSample();
     float channel2Sample = channel2_.GetSample();
+    float channel4Sample = channel4_.GetSample();
 
     uint_fast8_t leftCount = 0;
     uint_fast8_t rightCount = 0;
@@ -36,6 +38,9 @@ void APU::GetAudioSample(float* left, float* right)
 
     if (mix2Left_) { *left += channel2Sample; ++leftCount; }
     if (mix2Right_) { *right += channel2Sample; ++rightCount; }
+
+    if (mix4Left_) { *left += channel4Sample; ++leftCount; }
+    if (mix4Right_) { *right += channel4Sample; ++rightCount; }
 
     if (leftCount > 0)
     {
@@ -89,6 +94,8 @@ uint8_t APU::Read(uint8_t ioAddr)
             return channel1_.Read(ioAddr);
         case 0x16 ... 0x19:  // NR21 - NR24
             return channel2_.Read(ioAddr);
+        case 0x20 ... 0x23:  // NR41 - NR44
+            return channel4_.Read(ioAddr);
         case 0x24:  // NR50
             return NR50_;
         case 0x25:  // NR51
@@ -96,7 +103,7 @@ uint8_t APU::Read(uint8_t ioAddr)
         case 0x26:  // NR52
             return 0x70 |
                    (apuEnabled_ ? 0x80 : 0x00) |
-                   0x08 |
+                   (channel4_.Enabled() ? 0x08 : 0x00) |
                    0x04 |
                    (channel2_.Enabled() ? 0x02 : 0x00) |
                    (channel1_.Enabled() ? 0x01 : 0x00);
@@ -114,6 +121,9 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
             break;
         case 0x16 ... 0x19:  // NR21 - NR24
             channel2_.Write(ioAddr, data);
+            break;
+        case 0x20 ... 0x23:  // NR41 - NR44
+            channel4_.Write(ioAddr, data);
             break;
         case 0x24:  // NR50
         {
@@ -158,6 +168,7 @@ void APU::Reset()
 
     channel1_.Reset();
     channel2_.Reset();
+    channel4_.Reset();
 }
 
 float APU::HPF(float input)
@@ -178,6 +189,7 @@ void APU::AdvanceFrameSequencer()
         envelopeDivider_ = 0;
         channel1_.ClockEnvelope();
         channel2_.ClockEnvelope();
+        channel4_.ClockEnvelope();
     }
 
     if (ch1FreqDivider_ == 4)  // 128 Hz
@@ -191,5 +203,6 @@ void APU::AdvanceFrameSequencer()
         soundLengthDivider_ = 0;
         channel1_.ClockLengthTimer();
         channel2_.ClockLengthTimer();
+        channel4_.ClockLengthTimer();
     }
 }
