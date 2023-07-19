@@ -14,7 +14,11 @@ LOG_PATH = ctypes.create_string_buffer(b"./logs/")
 SAVE_PATH = ctypes.create_string_buffer(b"./saves/")
 BOOT_ROM_PATH = ctypes.create_string_buffer(b"./boot/")
 
-GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
+if sys.platform == "darwin":
+    GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dylib", winmode=0)
+elif sys.platform == "win32":
+    GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
+
 GAME_BOY.GetAudioSample.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
 RENDERER = None
 
@@ -22,7 +26,6 @@ RENDERER = None
 def audio_callback(userdata, stream, len):
     buffer = ctypes.cast(stream, ctypes.POINTER(ctypes.c_float))
     num_samples = (len // ctypes.sizeof(ctypes.c_float))
-    # updated_screen = False
     left = ctypes.c_float(0.0)
     right = ctypes.c_float(0.0)
 

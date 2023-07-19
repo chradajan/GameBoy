@@ -10,8 +10,6 @@
 #include <string>
 #include <iostream>
 
-constexpr size_t FRAME_BUFFER_SIZE = 160 * 144 * 3;
-
 GameBoy::GameBoy() :
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
          std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2),

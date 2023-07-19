@@ -23,6 +23,10 @@ set(SOURCES
     src/PPU.cpp
 )
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
+
 add_library(GameBoy SHARED ${SOURCES})
 
 set_target_properties(GameBoy PROPERTIES
@@ -30,10 +34,6 @@ set_target_properties(GameBoy PROPERTIES
     PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/CGB.hpp
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
     ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -O3")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE ${PROJECT_SOURCE_DIR}/src/include
