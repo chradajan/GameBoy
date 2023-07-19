@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Channel1.hpp>
 #include <Channel2.hpp>
 #include <cstdint>
 
@@ -20,11 +21,17 @@ public:
 
 private:
     float HPF(float input);
+    void AdvanceFrameSequencer();
 
     // State
     bool apuEnabled_;
-    uint8_t divCounter_;
     float capacitor_;
+
+    // APU DIV
+    uint8_t divDivider_;
+    uint8_t envelopeDivider_;
+    uint8_t soundLengthDivider_;
+    uint8_t ch1FreqDivider_;
 
     // Control
     bool mix1Left_;
@@ -45,5 +52,6 @@ private:
     uint8_t NR51_;
 
     // Channels
+    Channel1 channel1_;
     Channel2 channel2_;
 };

@@ -12,6 +12,7 @@ set(SOURCES
     src/Cartridge/MBC1.cpp
     src/Cartridge/MBC5.cpp
     src/CGB.cpp
+    src/Channel1.cpp
     src/Channel2.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp

@@ -6,14 +6,15 @@ class Channel2
 {
 public:
     void Clock();
-    void ApuDiv();
+    void ClockEnvelope();
+    void ClockLengthTimer();
 
-    bool Enabled() { return dacEnabled_ && (!SoundLengthEnable() || !lengthTimerExpired_); }
-    bool DACEnabled() { return dacEnabled_; }
+    bool Enabled() const { return dacEnabled_ && (!SoundLengthTimerEnabled() || !lengthTimerExpired_); }
+    bool DACEnabled() const { return dacEnabled_; }
 
-    float GetSample();
+    float GetSample() const;
 
-    uint8_t Read(uint8_t ioAddr);
+    uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
 
     void Reset();
@@ -21,32 +22,42 @@ public:
 private:
     void Trigger();
 
-    void SetDutyCycle() { dutyCycle_ = (NR21_ & 0xC0) >> 6; }
-    void SetLengthTimer() { lengthTimer_ = NR21_ & 0x3F; }
-    void SetPeriod() { period_ = ((NR24_ & 0x07) << 8) | NR23_; }
-    bool SoundLengthEnable() { return NR24_ & 0x40; }
+    uint8_t GetDutyCycle() const { return (NR21_ & 0xC0) >> 6; }
+    uint16_t GetPeriod() const { return ((NR24_ & 0x07) << 8) | NR23_; }
+    void SetLengthCounter() { lengthCounter_ = NR21_ & 0x3F; }
+    bool SoundLengthTimerEnabled() const { return NR24_ & 0x40; }
+
+    // Duty cycle patterns
+    static constexpr int8_t DUTY_CYCLE[4][8] =
+    {
+        {1, 1, 1, 1, 1, 1, 1, -1},
+        {1, 1, 1, 1, 1, 1, -1, -1},
+        {1, 1, 1, 1, -1, -1, -1, -1},
+        {1, 1, -1, -1, -1, -1, -1, -1}
+    };
 
     // Registers
-    uint8_t NR21_;  // Length timer & duty cycle
-    uint8_t NR22_;  // Volume & envelope
-    uint8_t NR23_;  // Period low
-    uint8_t NR24_;  // Period high & control
+    uint8_t NR21_;
+    uint8_t NR22_;
+    uint8_t NR23_;
+    uint8_t NR24_;
 
-    // State
-    uint8_t dutyCycle_;
-    uint8_t dutyStep_;
-
-    uint8_t lengthTimer_;
-    uint8_t lengthTimerDivider_;
+    // Length timer
+    uint8_t lengthCounter_;
     bool lengthTimerExpired_;
 
-    uint8_t volume_;
-    bool increaseEnvelope_;
-    uint8_t sweepPace_;
-    uint8_t sweepCount_;
-    uint8_t envelopeDivider_;
-    bool dacEnabled_;
+    // Duty cycle
+    uint8_t dutyStep_;
 
-    uint16_t period_;
-    uint16_t periodCounter_;
+    // Volume
+    uint8_t currentVolume_;
+    bool increaseVolume_;
+    uint8_t volumeSweepPace_;
+    uint8_t volumeSweepDivider_;
+
+    // Period
+    uint16_t periodDivider_;
+
+    // DAC
+    bool dacEnabled_;
 };
