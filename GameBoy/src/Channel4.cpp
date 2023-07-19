@@ -7,19 +7,17 @@ void Channel4::Clock()
     if (lsfrCounter_ == lsfrDivider_)
     {
         lsfrCounter_ = 0;
-
-        bool result = ((LFSR_ & 0x02) >> 1) == (LFSR_ & 0x01);
+        bool result = ((LFSR_ & 0x02) >> 1) ^ (LFSR_ & 0x01);
+        LFSR_ >>= 1;
 
         if (result)
         {
-            LFSR_ |= shortMode_ ? 0x8080 : 0x8000;
+            LFSR_ |= ShortMode() ? 0x4040 : 0x4000;
         }
         else
         {
-            LFSR_ &= shortMode_ ? 0x7F7F : 0x7FFF;
+            LFSR_ &= ShortMode() ? 0x3FBF : 0x3FFF;
         }
-
-        LFSR_ >>= 1;
     }
 }
 
@@ -69,7 +67,8 @@ float Channel4::GetSample() const
         return 0.0;
     }
 
-    return ((((SoundLengthTimerEnabled() && lengthTimerExpired_) ? 0x00 : currentVolume_) * (LFSR_ & 0x01)) / 7.5) - 1.0;
+    uint_fast8_t volume = (SoundLengthTimerEnabled() && lengthTimerExpired_) ? 0 : currentVolume_;
+    return ((volume * (LFSR_ & 0x01)) / 7.5) - 1.0;
 }
 
 uint8_t Channel4::Read(uint8_t ioAddr) const
@@ -122,10 +121,10 @@ void Channel4::Write(uint8_t ioAddr, uint8_t data)
 
 void Channel4::Reset()
 {
-    NR41_ = 0x00;
+    NR41_ = 0xFF;
     NR42_ = 0x00;
     NR43_ = 0x00;
-    NR44_ = 0x00;
+    NR44_ = 0xBF;
     dacEnabled_ = false;
 }
 
@@ -141,15 +140,25 @@ void Channel4::Trigger()
     dacEnabled_ = (NR42_ & 0xF8) != 0x00;
 
     SetLsfrDivider();
-    LFSR_ = 0x0000;
+    LFSR_ = 0xFFFF;
 }
 
 void Channel4::SetLsfrDivider()
 {
+    uint_fast32_t cpuFreq = 1048576;
+    uint_fast32_t baseFreq = 262144;
+    uint_fast8_t r = NR43_ & 0x07;
     uint_fast8_t s = (NR43_ & 0xF0) >> 4;
-    float r = (NR43_ & 0x07) ? (NR43_ & 0x07) : 0.5;
-    uint_fast16_t frequency = 262144 / (r * (0x01 << s));
-    lsfrDivider_ = 1048576 / frequency;
-    shortMode_ = (NR43_ & 0x08) == 0x00;
+
+    if (r == 0)
+    {
+        baseFreq *= 2;
+        lsfrDivider_ = cpuFreq / (baseFreq / (0x01 << s));
+    }
+    else
+    {
+        lsfrDivider_ = cpuFreq / (baseFreq / r / (0x01 << s));
+    }
+
     lsfrCounter_ = 0;
 }

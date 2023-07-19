@@ -24,6 +24,7 @@ private:
 
     void SetLengthCounter() { lengthCounter_ = NR41_ & 0x3F; }
     bool SoundLengthTimerEnabled() const { return NR44_ & 0x40; }
+    bool ShortMode() const { return NR43_ & 0x08; }
     void SetLsfrDivider();
 
     // Registers

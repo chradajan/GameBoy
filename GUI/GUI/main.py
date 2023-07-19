@@ -31,8 +31,8 @@ def audio_callback(userdata, stream, len):
 
     for i in range(0, num_samples, 2):
         GAME_BOY.GetAudioSample(ctypes.byref(left), ctypes.byref(right))
-        buffer[i] = left
-        buffer[i+1] = right
+        buffer[i] = left.value * 0.15
+        buffer[i+1] = right.value * 0.15
 
 def main(rom_path: bytes):
     global RENDERER
