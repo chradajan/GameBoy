@@ -73,4 +73,7 @@ private:
 
     // DAC
     bool dacEnabled_;
+
+    // State
+    bool triggered_;
 };

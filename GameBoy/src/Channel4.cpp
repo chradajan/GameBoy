@@ -62,7 +62,7 @@ void Channel4::ClockLengthTimer()
 
 float Channel4::GetSample() const
 {
-    if (!dacEnabled_)
+    if (!dacEnabled_ || !triggered_)
     {
         return 0.0;
     }
@@ -126,6 +126,7 @@ void Channel4::Reset()
     NR43_ = 0x00;
     NR44_ = 0xBF;
     dacEnabled_ = false;
+    triggered_ = false;
 }
 
 void Channel4::Trigger()
@@ -141,6 +142,8 @@ void Channel4::Trigger()
 
     SetLsfrDivider();
     LFSR_ = 0xFFFF;
+
+    triggered_ = true;
 }
 
 void Channel4::SetLsfrDivider()

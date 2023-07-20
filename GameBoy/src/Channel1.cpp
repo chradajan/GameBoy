@@ -93,7 +93,7 @@ void Channel1::ClockFrequencySweep()
 
 float Channel1::GetSample() const
 {
-    if (!dacEnabled_)
+    if (!dacEnabled_ || !triggered_)
     {
         return 0.0;
     }
@@ -174,6 +174,7 @@ void Channel1::Reset()
     NR14_ = 0xBF;
     dutyStep_ = 0;
     dacEnabled_ = false;
+    triggered_ = false;
 }
 
 void Channel1::Trigger()
@@ -193,6 +194,8 @@ void Channel1::Trigger()
     dacEnabled_ = (NR12_ & 0xF8) != 0x00;
 
     periodDivider_ = GetPeriod();
+
+    triggered_ = true;
 }
 
 void Channel1::SetPeriod(uint16_t period)

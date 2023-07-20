@@ -14,6 +14,7 @@ set(SOURCES
     src/CGB.cpp
     src/Channel1.cpp
     src/Channel2.cpp
+    src/Channel3.cpp
     src/Channel4.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp

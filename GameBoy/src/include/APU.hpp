@@ -2,6 +2,7 @@
 
 #include <Channel1.hpp>
 #include <Channel2.hpp>
+#include <Channel3.hpp>
 #include <Channel4.hpp>
 #include <cstdint>
 
@@ -55,5 +56,6 @@ private:
     // Channels
     Channel1 channel1_;
     Channel2 channel2_;
+    Channel3 channel3_;
     Channel4 channel4_;
 };

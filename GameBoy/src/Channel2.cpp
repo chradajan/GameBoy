@@ -52,7 +52,7 @@ void Channel2::ClockLengthTimer()
 
 float Channel2::GetSample() const
 {
-    if (!dacEnabled_)
+    if (!dacEnabled_ || !triggered_)
     {
         return 0.0;
     }
@@ -115,6 +115,7 @@ void Channel2::Reset()
     NR24_ = 0x00;
     dutyStep_ = 0;
     dacEnabled_ = false;
+    triggered_ = false;
 }
 
 void Channel2::Trigger()
@@ -129,4 +130,6 @@ void Channel2::Trigger()
     dacEnabled_ = (NR22_ & 0xF8) != 0x00;
 
     periodDivider_ = GetPeriod();
+
+    triggered_ = true;
 }

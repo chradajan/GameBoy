@@ -9,6 +9,7 @@ void APU::Clock()
 
     channel1_.Clock();
     channel2_.Clock();
+    channel3_.Clock();
     channel4_.Clock();
 }
 
@@ -25,6 +26,7 @@ void APU::GetAudioSample(float* left, float* right)
 
     float channel1Sample = channel1_.GetSample();
     float channel2Sample = channel2_.GetSample();
+    float channel3Sample = channel3_.GetSample();
     float channel4Sample = channel4_.GetSample();
 
     uint_fast8_t leftCount = 0;
@@ -38,6 +40,9 @@ void APU::GetAudioSample(float* left, float* right)
 
     if (mix2Left_) { *left += channel2Sample; ++leftCount; }
     if (mix2Right_) { *right += channel2Sample; ++rightCount; }
+
+    if (mix3Left_) { *left += channel3Sample; ++leftCount; }
+    if (mix3Right_) { *right += channel3Sample; ++rightCount; }
 
     if (mix4Left_) { *left += channel4Sample; ++leftCount; }
     if (mix4Right_) { *right += channel4Sample; ++rightCount; }
@@ -94,6 +99,8 @@ uint8_t APU::Read(uint8_t ioAddr)
             return channel1_.Read(ioAddr);
         case 0x16 ... 0x19:  // NR21 - NR24
             return channel2_.Read(ioAddr);
+        case 0x1A ... 0x1E:  // NR30 - NR34
+            return channel3_.Read(ioAddr);
         case 0x20 ... 0x23:  // NR41 - NR44
             return channel4_.Read(ioAddr);
         case 0x24:  // NR50
@@ -104,9 +111,11 @@ uint8_t APU::Read(uint8_t ioAddr)
             return 0x70 |
                    (apuEnabled_ ? 0x80 : 0x00) |
                    (channel4_.Enabled() ? 0x08 : 0x00) |
-                   0x04 |
+                   (channel3_.Enabled() ? 0x04 : 0x00) |
                    (channel2_.Enabled() ? 0x02 : 0x00) |
                    (channel1_.Enabled() ? 0x01 : 0x00);
+        case 0x30 ... 0x3F:  // Wave RAM
+            return channel3_.Read(ioAddr);
         default:
             return 0xFF;
     }
@@ -121,6 +130,9 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
             break;
         case 0x16 ... 0x19:  // NR21 - NR24
             channel2_.Write(ioAddr, data);
+            break;
+        case 0x1A ... 0x1E:  // NR30 - NR34
+            channel3_.Write(ioAddr, data);
             break;
         case 0x20 ... 0x23:  // NR41 - NR44
             channel4_.Write(ioAddr, data);
@@ -149,6 +161,9 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
         case 0x26:  // NR52
             apuEnabled_ = data & 0x80;
             break;
+        case 0x30 ... 0x3F:  // Wave RAM
+            channel3_.Write(ioAddr, data);
+            break;
         default:
             break;
         }
@@ -168,6 +183,7 @@ void APU::Reset()
 
     channel1_.Reset();
     channel2_.Reset();
+    channel3_.Reset();
     channel4_.Reset();
 }
 
@@ -203,6 +219,7 @@ void APU::AdvanceFrameSequencer()
         soundLengthDivider_ = 0;
         channel1_.ClockLengthTimer();
         channel2_.ClockLengthTimer();
+        channel3_.ClockLengthTimer();
         channel4_.ClockLengthTimer();
     }
 }
