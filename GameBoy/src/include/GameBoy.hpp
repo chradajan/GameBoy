@@ -186,9 +186,7 @@ private:
     /// @brief Run one cycle of an OAM DMA transfer.
     void ClockOamDma();
 
-    void ClockVramGDMA();
-
-    void ClockVramHDMA();
+    void ClockVramDma();
 
     /// @brief Run one cycle of a serial transfer.
     void ClockSerialTransfer();
@@ -250,6 +248,9 @@ private:
     void IoWriteVramDMA(uint8_t data);
     void IoWriteBCPD(uint8_t data);
     void IoWriteOCPD(uint8_t data);
+
+    void SetHDMARegisters();
+    void SetVramDmaAddresses();
 
     void SetDefaultCgbIoValues();
 
@@ -317,14 +318,13 @@ private:
     uint8_t oamIndexDest_;
 
     // VRAM DMA
-    uint16_t vramDmaSrcAddr_;
-    uint16_t vramDmaDestAddr_;
+    uint8_t vramDmaBlocksRemaining_;
+    uint16_t vramDmaBytesRemaining_;
+    uint16_t vramDmaSrc_;
+    uint16_t vramDmaDest_;
+    bool wasMode0_;
     bool gdmaInProgress_;
     bool hdmaInProgress_;
-    uint16_t gdmaBytesRemaining_;
-    uint8_t hdmaBytesRemaining_;
-    uint8_t hdmaBlocksRemaining_;
-    uint8_t hdmaLy_;
 
     // Interrupts
     uint8_t lastPendingInterrupt_;

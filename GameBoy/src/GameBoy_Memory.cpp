@@ -210,10 +210,10 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
         {
             if (hdmaInProgress_)
             {
-                return (hdmaBlocksRemaining_ - 1);
+                return vramDmaBlocksRemaining_ - 1;
             }
 
-            return 0xFF;
+            return ioReg_[IO::HDMA5];
         }
         case IO::RP:  // Infrared communication port
             return 0xFF;
@@ -458,26 +458,26 @@ void GameBoy::IoWriteVramDMA(uint8_t data)
         if ((data & 0x80) == 0x00)
         {
             hdmaInProgress_ = false;
-            ioReg_[IO::HDMA5] = (0x80 | (hdmaBlocksRemaining_ - 1));
+            SetHDMARegisters();
+            ioReg_[IO::HDMA5] = 0x80 | (vramDmaBlocksRemaining_ - 1);
         }
 
         return;
     }
 
-    vramDmaSrcAddr_ = ((ioReg_[IO::HDMA1] << 8) | ioReg_[IO::HDMA2]) & 0xFFF0;
-    vramDmaDestAddr_ = 0x8000 | (((ioReg_[IO::HDMA3] << 8) | ioReg_[IO::HDMA4]) & 0x1FF0);
+    SetVramDmaAddresses();
+    vramDmaBlocksRemaining_ = (data & 0x7F) + 1;
 
     if (data & 0x80)
     {
         hdmaInProgress_ = true;
+        vramDmaBytesRemaining_ = 0;
     }
     else
     {
         gdmaInProgress_ = true;
+        vramDmaBytesRemaining_ = vramDmaBlocksRemaining_ * 0x10;
     }
-
-    hdmaBlocksRemaining_ = (data & 0x7F) + 1;
-    gdmaBytesRemaining_ = hdmaBlocksRemaining_ * 0x10;
 }
 
 void GameBoy::IoWriteBCPD(uint8_t data)
@@ -520,82 +520,31 @@ void GameBoy::IoWriteOCPD(uint8_t data)
     }
 }
 
+void GameBoy::SetHDMARegisters()
+{
+    ioReg_[IO::HDMA1] = (vramDmaSrc_ & 0xFF00) >> 8;
+    ioReg_[IO::HDMA2] = vramDmaSrc_ & 0x00F0;
+    ioReg_[IO::HDMA3] = (vramDmaDest_ & 0x1F00) >> 8;
+    ioReg_[IO::HDMA4] = vramDmaDest_ & 0x00F0;
+}
+
+void GameBoy::SetVramDmaAddresses()
+{
+    vramDmaSrc_ = ((ioReg_[IO::HDMA1] << 8) | ioReg_[IO::HDMA2]) & 0xFFF0;
+    vramDmaDest_ = 0x8000 | (((ioReg_[IO::HDMA3] << 8) | ioReg_[IO::HDMA4]) & 0x1FF0);
+}
+
 void GameBoy::SetDefaultCgbIoValues()
 {
     ioReg_[IO::JOYP] = 0xCF;
     ioReg_[IO::SB] = 0x00;
     ioReg_[IO::SC] = 0x7F;
     // ioReg[IO::DIV] = ?;
-    ioReg_[IO::TAC] = 0xF8;
-    ioReg_[IO::IF] = 0xE1;
-    ioReg_[IO::NR10] = 0x80;
-    ioReg_[IO::NR11] = 0xBF;
-    ioReg_[IO::NR12] = 0xF3;
-    ioReg_[IO::NR13] = 0xFF;
-    ioReg_[IO::NR14] = 0xBF;
-    ioReg_[IO::NR30] = 0x7F;
-    ioReg_[IO::NR31] = 0xFF;
-    ioReg_[IO::NR32] = 0x9F;
-    ioReg_[IO::NR33] = 0xFF;
-    ioReg_[IO::NR34] = 0xBF;
-    ioReg_[IO::NR41] = 0xFF;
-    ioReg_[IO::NR44] = 0xBF;
-    ioReg_[IO::NR50] = 0x77;
-    ioReg_[IO::NR51] = 0xF3;
-    ioReg_[IO::NR52] = 0xF1;
-    ioReg_[IO::LCDC] = 0x91;
-    ioReg_[IO::BGP] = 0xFC;
-    ioReg_[IO::KEY1] = 0xFF;
-    ioReg_[IO::VBK] = 0xFF;
-    ioReg_[IO::HDMA1] = 0xFF;
-    ioReg_[IO::HDMA2] = 0xFF;
-    ioReg_[IO::HDMA3] = 0xFF;
-    ioReg_[IO::HDMA4] = 0xFF;
-    ioReg_[IO::HDMA5] = 0xFF;
-    ioReg_[IO::SVBK] = 0xFF;
-
-    ioReg_[IO::JOYP] = 0xCF;
-    ioReg_[IO::SB] = 0x00;
-    ioReg_[IO::SC] = 0x7F;
-    // ioReg_[IO::DIV] = ?;
     ioReg_[IO::TIMA] = 0x00;
     ioReg_[IO::TMA] = 0x00;
     ioReg_[IO::TAC] = 0xF8;
     ioReg_[IO::IF] = 0xE1;
-    ioReg_[IO::NR10] = 0x80;
-    ioReg_[IO::NR11] = 0xBF;
-    ioReg_[IO::NR12] = 0xF3;
-    ioReg_[IO::NR13] = 0xFF;
-    ioReg_[IO::NR14] = 0xBF;
-    ioReg_[IO::NR21] = 0x3F;
-    ioReg_[IO::NR22] = 0x00;
-    ioReg_[IO::NR23] = 0xFF;
-    ioReg_[IO::NR24] = 0xBF;
-    ioReg_[IO::NR30] = 0x7F;
-    ioReg_[IO::NR31] = 0xFF;
-    ioReg_[IO::NR32] = 0x9F;
-    ioReg_[IO::NR33] = 0xFF;
-    ioReg_[IO::NR34] = 0xBF;
-    ioReg_[IO::NR41] = 0xFF;
-    ioReg_[IO::NR42] = 0x00;
-    ioReg_[IO::NR43] = 0x00;
-    ioReg_[IO::NR44] = 0xBF;
-    ioReg_[IO::NR50] = 0x77;
-    ioReg_[IO::NR51] = 0xF3;
-    ioReg_[IO::NR52] = 0xF1;
-
-    for (uint_fast8_t i = IO::WAVE_RAM_START; i < IO::WAVE_RAM_END; ++i)
-    {
-        if ((i % 2) == 0)
-        {
-            ioReg_[i] = 0x00;
-        }
-        else
-        {
-            ioReg_[i] = 0xFF;
-        }
-    }
-
+    // Audio registers initialized in APU
     ioReg_[IO::LCDC] = 0x91;
     // ioReg_[IO::STAT] = ?;
     ioReg_[IO::SCY] = 0x00;
@@ -608,7 +557,7 @@ void GameBoy::SetDefaultCgbIoValues()
     // ioReg_[IO::OBP1] = ?;
     ioReg_[IO::WY] = 0x00;
     ioReg_[IO::WX] = 0x00;
-    ioReg_[IO::KEY1] = 0x7E;
+    ioReg_[IO::KEY1] = 0xFF;
     ioReg_[IO::VBK] = 0xFF;
     ioReg_[IO::HDMA1] = 0xFF;
     ioReg_[IO::HDMA2] = 0xFF;

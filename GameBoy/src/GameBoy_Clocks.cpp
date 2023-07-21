@@ -11,15 +11,10 @@ void GameBoy::RunMCycle()
             {
                 bool clockCpu = true;
 
-                if (gdmaInProgress_)
+                if (gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_))
                 {
                     clockCpu = false;
-                    ClockVramGDMA();
-                }
-                else if (hdmaInProgress_ && (hdmaBytesRemaining_ > 0))
-                {
-                    clockCpu = false;
-                    ClockVramHDMA();
+                    ClockVramDma();
                 }
 
                 ClockVariableSpeedComponents(clockCpu);
@@ -34,7 +29,7 @@ void GameBoy::RunMCycle()
             case 2:
                 if (DoubleSpeedMode())
                 {
-                    bool clockCpu = !(gdmaInProgress_ || (hdmaInProgress_ && (hdmaBytesRemaining_ > 0)));
+                    bool clockCpu = !(gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_));
                     ClockVariableSpeedComponents(clockCpu);
                 }
 
@@ -43,16 +38,19 @@ void GameBoy::RunMCycle()
             case 3:
             {
                 ppu_.Clock(oamDmaInProgress_);
-
-                if (hdmaInProgress_ && (ppu_.GetMode() == 0) && (ioReg_[IO::LY] != hdmaLy_) && (hdmaBytesRemaining_ == 0))
-                {
-                    hdmaBytesRemaining_ = 0x10;
-                    hdmaLy_ = ioReg_[IO::LY];
-                }
                 break;
             }
         }
     }
+
+    bool isMode0 = (ppu_.GetMode() == 0);
+
+    if (hdmaInProgress_ && (!wasMode0_ && isMode0))
+    {
+        vramDmaBytesRemaining_ = 0x10;
+    }
+
+    wasMode0_ = isMode0;
 
     if (speedSwitchCountdown_ > 0)
     {
@@ -127,71 +125,34 @@ void GameBoy::ClockOamDma()
     }
 }
 
-void GameBoy::ClockVramGDMA()
+void GameBoy::ClockVramDma()
 {
-    uint_fast8_t xferByte = Read(vramDmaSrcAddr_++);
-    Write(vramDmaDestAddr_++, xferByte);
+    uint_fast8_t xferByte = Read(vramDmaSrc_++);
+    Write(vramDmaDest_++, xferByte);
+    --vramDmaBytesRemaining_;
 
-    if (vramDmaDestAddr_ > 0x9FFF)
+    xferByte = Read(vramDmaSrc_++);
+    Write(vramDmaDest_++, xferByte);
+    --vramDmaBytesRemaining_;
+
+    if (vramDmaBytesRemaining_ == 0)
     {
-        gdmaInProgress_ = false;
-        ioReg_[IO::HDMA5] = 0xFF;
-        return;
-    }
-
-    --gdmaBytesRemaining_;
-    xferByte = Read(vramDmaSrcAddr_++);
-    Write(vramDmaDestAddr_++, xferByte);
-
-    if (vramDmaDestAddr_ > 0x9FFF)
-    {
-        gdmaInProgress_ = false;
-        ioReg_[IO::HDMA5] = 0xFF;
-        return;
-    }
-
-    --gdmaBytesRemaining_;
-
-    if (gdmaBytesRemaining_ == 0)
-    {
-        gdmaInProgress_ = false;
-        ioReg_[IO::HDMA5] = 0xFF;
-    }
-}
-
-void GameBoy::ClockVramHDMA()
-{
-    uint_fast8_t xferByte = Read(vramDmaSrcAddr_++);
-    Write(vramDmaDestAddr_++, xferByte);
-
-    if (vramDmaDestAddr_ > 0x9FFF)
-    {
-        hdmaInProgress_ = false;
-        ioReg_[IO::HDMA5] = 0xFF;
-        return;
-    }
-
-    --hdmaBytesRemaining_;
-    xferByte = Read(vramDmaSrcAddr_++);
-    Write(vramDmaDestAddr_++, xferByte);
-
-    if (vramDmaDestAddr_ > 0x9FFF)
-    {
-        hdmaInProgress_ = false;
-        ioReg_[IO::HDMA5] = 0xFF;
-        return;
-    }
-
-    --hdmaBytesRemaining_;
-
-    if (hdmaBytesRemaining_ == 0)
-    {
-        --hdmaBlocksRemaining_;
-
-        if (hdmaBlocksRemaining_ == 0)
+        if (gdmaInProgress_)
         {
-            hdmaInProgress_ = false;
+            gdmaInProgress_ = false;
+            SetHDMARegisters();
             ioReg_[IO::HDMA5] = 0xFF;
+        }
+        else
+        {
+            --vramDmaBlocksRemaining_;
+
+            if (vramDmaBlocksRemaining_ == 0)
+            {
+                hdmaInProgress_ = false;
+                SetHDMARegisters();
+                ioReg_[IO::HDMA5] = 0xFF;
+            }
         }
     }
 }

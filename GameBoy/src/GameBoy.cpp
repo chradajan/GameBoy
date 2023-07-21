@@ -243,8 +243,6 @@ void GameBoy::Reset()
     BG_CRAM_.fill(0x00);
     OBJ_CRAM_.fill(0x00);
 
-    SetDefaultCgbIoValues();
-
     if (!runningBootRom_)
     {
         SetDefaultCgbIoValues();
@@ -274,14 +272,9 @@ void GameBoy::Reset()
     oamDmaSrcAddr_ = 0x0000;
     oamIndexDest_ = 0;
 
-    vramDmaSrcAddr_ = 0x0000;
-    vramDmaDestAddr_ = 0x0000;
+    wasMode0_ = false;
     gdmaInProgress_ = false;
     hdmaInProgress_ = false;
-    gdmaBytesRemaining_ = 0;
-    hdmaBytesRemaining_ = 0;
-    hdmaBlocksRemaining_ = 0;
-    hdmaLy_ = 0xFF;
 
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
