@@ -10,6 +10,7 @@ set(SOURCES
     src/APU.cpp
     src/Cartridge/MBC0.cpp
     src/Cartridge/MBC1.cpp
+    src/Cartridge/MBC3.cpp
     src/Cartridge/MBC5.cpp
     src/CGB.cpp
     src/Channel1.cpp

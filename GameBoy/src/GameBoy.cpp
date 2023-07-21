@@ -2,6 +2,7 @@
 #include <Cartridge/Cartridge.hpp>
 #include <Cartridge/MBC0.hpp>
 #include <Cartridge/MBC1.hpp>
+#include <Cartridge/MBC3.hpp>
 #include <Cartridge/MBC5.hpp>
 #include <algorithm>
 #include <array>
@@ -104,6 +105,9 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
             break;
         case 0x01 ... 0x03:
             cartridge_ = std::make_unique<MBC1>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
+            break;
+        case 0x0F ... 0x13:
+            cartridge_ = std::make_unique<MBC3>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
             break;
         case 0x19 ... 0x1E:
             cartridge_ = std::make_unique<MBC5>(bank0, rom, savePath, cartridgeType, romBanks, ramBanks);
