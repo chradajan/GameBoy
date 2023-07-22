@@ -79,7 +79,10 @@ void PPU::Clock(bool const oamDmaInProgress)
         }
     }
 
-    SetLYC();
+    if (LCDEnabled())
+    {
+        SetLYC();
+    }
 
     if (((reg_.STAT & 0x03) == 0x03) && (dot_ > 84))
     {

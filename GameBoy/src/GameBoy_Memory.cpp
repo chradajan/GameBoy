@@ -189,11 +189,11 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
         case IO::LCDC:  // LCD control
             return ioReg_[IO::LCDC];
         case IO::STAT:  // LCD Status
-            return ioReg_[IO::STAT];
+            return ppu_.LCDEnabled() ? (ioReg_[IO::STAT] | 0x80) : ((ioReg_[IO::STAT] | 0x80) & 0xFC);
         case IO::SCY ... IO::SCX:  // Viewport position
             return ioReg_[ioAddr];
         case IO::LY:  // LCD Y coordinate
-            return ioReg_[IO::LY];
+            return ppu_.LCDEnabled() ? ioReg_[IO::LY] : 0;
         case IO::LYC:  // LY compare
             return ioReg_[IO::LYC];
         case IO::DMA:  // OAM DMA
@@ -274,6 +274,9 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             timerReload_ = false;
             ioReg_[IO::TIMA] = data;
             break;
+        case IO::TMA:  // Timer modulo
+            ioReg_[IO::TMA] = data;
+            break;
         case IO::TAC:  // Timer control
             IoWriteTAC(data);
             break;
@@ -293,7 +296,7 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             if (!ppu_.LCDEnabled())
             {
                 ppu_.Reset();
-                ioReg_[IO::STAT] &= 0x7C;
+                ioReg_[IO::STAT] &= 0xFC;
             }
             else if (!currentlyEnabled && ppu_.LCDEnabled())
             {
@@ -457,8 +460,13 @@ void GameBoy::IoWriteVramDMA(uint8_t data)
         if ((data & 0x80) == 0x00)
         {
             hdmaInProgress_ = false;
+            transferActive_ = false;
             SetHDMARegisters();
             ioReg_[IO::HDMA5] = 0x80 | (vramDmaBlocksRemaining_ - 1);
+        }
+        else
+        {
+            vramDmaBlocksRemaining_ = (data & 0x7F) + 1;
         }
 
         return;

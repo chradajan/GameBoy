@@ -37,6 +37,8 @@ public:
     /// @brief Use to force exit halt mode.
     void ExitHalt() { halted_ = false; }
 
+    bool InBetweenInstructions() const { return mCycle_ == 0; };
+
     /// @brief Reset the state of the CPU to as if it just started.
     /// @param bootRom Used to decided where to set PC.
     void Reset(bool bootRom);

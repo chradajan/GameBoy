@@ -325,6 +325,7 @@ private:
     bool wasMode0_;
     bool gdmaInProgress_;
     bool hdmaInProgress_;
+    bool transferActive_;
 
     // Interrupts
     uint8_t lastPendingInterrupt_;

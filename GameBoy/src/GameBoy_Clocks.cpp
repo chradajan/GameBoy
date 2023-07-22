@@ -9,15 +9,13 @@ void GameBoy::RunMCycle()
         {
             case 0:
             {
-                bool clockCpu = true;
-
-                if (gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_))
+                if (cpu_.InBetweenInstructions() && (gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_)))
                 {
-                    clockCpu = false;
+                    transferActive_ = true;
                     ClockVramDma();
                 }
 
-                ClockVariableSpeedComponents(clockCpu);
+                ClockVariableSpeedComponents(!transferActive_);
 
                 apu_.Clock();
                 ppu_.Clock(oamDmaInProgress_);
@@ -29,8 +27,7 @@ void GameBoy::RunMCycle()
             case 2:
                 if (DoubleSpeedMode())
                 {
-                    bool clockCpu = !(gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_));
-                    ClockVariableSpeedComponents(clockCpu);
+                    ClockVariableSpeedComponents(!transferActive_);
                 }
 
                 ppu_.Clock(oamDmaInProgress_);
@@ -127,13 +124,9 @@ void GameBoy::ClockOamDma()
 
 void GameBoy::ClockVramDma()
 {
-    uint_fast8_t xferByte = Read(vramDmaSrc_++);
-    Write(vramDmaDest_++, xferByte);
-    --vramDmaBytesRemaining_;
-
-    xferByte = Read(vramDmaSrc_++);
-    Write(vramDmaDest_++, xferByte);
-    --vramDmaBytesRemaining_;
+    Write(vramDmaDest_++, Read(vramDmaSrc_++));
+    Write(vramDmaDest_++, Read(vramDmaSrc_++));
+    vramDmaBytesRemaining_ -= 2;
 
     if (vramDmaBytesRemaining_ == 0)
     {
@@ -142,10 +135,12 @@ void GameBoy::ClockVramDma()
             gdmaInProgress_ = false;
             SetHDMARegisters();
             ioReg_[IO::HDMA5] = 0xFF;
+            transferActive_ = false;
         }
         else
         {
             --vramDmaBlocksRemaining_;
+            transferActive_ = false;
 
             if (vramDmaBlocksRemaining_ == 0)
             {

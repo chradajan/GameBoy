@@ -275,6 +275,7 @@ void GameBoy::Reset()
     wasMode0_ = false;
     gdmaInProgress_ = false;
     hdmaInProgress_ = false;
+    transferActive_ = false;
 
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
@@ -344,7 +345,7 @@ void GameBoy::AcknowledgeInterrupt()
 
 void GameBoy::CheckVBlankInterrupt()
 {
-    if (ppu_.VBlank())
+    if (ppu_.LCDEnabled() && ppu_.VBlank())
     {
         ioReg_[IO::IF] |= INT_SRC::VBLANK;
     }
@@ -436,8 +437,8 @@ std::pair<bool, bool> GameBoy::Stop(bool const IME)
         {
             // Good path for speed switch.
             apu_.ResetDIV(DoubleSpeedMode());
-            SwitchSpeedMode();  //
-            ioReg_[IO::KEY1] &= 0xFE;  //
+            SwitchSpeedMode();
+            ioReg_[IO::KEY1] &= 0xFE;
             speedSwitchCountdown_ = 2050;
             twoByteOpcode = true;
             enterHaltMode = true;
