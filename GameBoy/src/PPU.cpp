@@ -426,7 +426,14 @@ uint8_t PPU::ReadIoReg(uint8_t ioAddr) const
         case IO::SCX:  // Viewport X position
             return SCX_;
         case IO::LY:   // LCD Y coordinate
+        {
+            if ((LY_ == 153) && (dot_ > 3))
+            {
+                return 0;
+            }
+
             return LY_;
+        }
         case IO::LYC:  // LY compare
             return LYC_;
         case IO::BGP:  // BG palette data (Non-CGB mode only)
