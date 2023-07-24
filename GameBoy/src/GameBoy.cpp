@@ -9,7 +9,6 @@
 #include <functional>
 #include <sstream>
 #include <string>
-#include <iostream>
 
 GameBoy::GameBoy() :
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
@@ -177,7 +176,7 @@ void GameBoy::PowerOn()
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
 
-    apu_.Reset();
+    apu_.PowerOn(runningBootRom_);
     cpu_.Reset(runningBootRom_);
     ppu_.PowerOn(!runningBootRom_);
 }

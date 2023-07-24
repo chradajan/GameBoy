@@ -13,6 +13,43 @@ void APU::Clock()
     channel4_.Clock();
 }
 
+void APU::PowerOn(bool const skipBootRom)
+{
+    divDivider_ = 0;
+    envelopeDivider_ = 0;
+    soundLengthDivider_ = 0;
+    ch1FreqDivider_ = 0;
+    capacitor_ = 0.0;
+
+    if (skipBootRom)
+    {
+        Write(0x24, 0x77);  // Initialize NR50
+        Write(0x25, 0xF3);  // Initialize NR51
+        Write(0x26, 0xF1);  // Initialize NR52
+    }
+    else
+    {
+        NR50_ = 0x00;
+        NR51_ = 0x00;
+        leftVolume_ = 0;
+        rightVolume_ = 0;
+        mix1Right_ = false;
+        mix2Right_ = false;
+        mix3Right_ = false;
+        mix4Right_ = false;
+        mix1Left_ = false;
+        mix2Left_ = false;
+        mix3Left_ = false;
+        mix4Left_ = false;
+        apuEnabled_ = false;
+    }
+
+    channel1_.PowerOn(skipBootRom);
+    channel2_.PowerOn(skipBootRom);
+    channel3_.PowerOn(skipBootRom);
+    channel4_.PowerOn(skipBootRom);
+}
+
 void APU::GetAudioSample(float* left, float* right)
 {
     bool allDACsDisabled = !channel1_.DACEnabled() && !channel2_.DACEnabled() && !channel4_.DACEnabled();
@@ -167,24 +204,6 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
         }
-}
-
-void APU::Reset()
-{
-    divDivider_ = 0;
-    envelopeDivider_ = 0;
-    soundLengthDivider_ = 0;
-    ch1FreqDivider_ = 0;
-    capacitor_ = 0.0;
-
-    Write(0x24, 0x77);  // Initialize NR50
-    Write(0x25, 0xF3);  // Initialize NR51
-    Write(0x26, 0xF1);  // Initialize NR52
-
-    channel1_.Reset();
-    channel2_.Reset();
-    channel3_.Reset();
-    channel4_.Reset();
 }
 
 float APU::HPF(float input)

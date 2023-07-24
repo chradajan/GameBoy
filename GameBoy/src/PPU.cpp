@@ -138,7 +138,7 @@ void PPU::Clock()
 
     SetLYC();
 
-    if ((GetMode() == 0x03) && (dot_ > 84))
+    if ((GetMode() == 3) && (dot_ > 84))
     {
         auto pixel = pixelFifoPtr_->Clock();
 

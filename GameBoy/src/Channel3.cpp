@@ -1,5 +1,29 @@
 #include <Channel3.hpp>
 
+void Channel3::PowerOn(bool const skipBootRom)
+{
+    if (skipBootRom)
+    {
+        NR30_ = 0x7F;
+        NR31_ = 0xFF;
+        NR32_ = 0x9F;
+        NR33_ = 0xFF;
+        NR34_ = 0xBF;
+    }
+    else
+    {
+        NR30_ = 0x00;
+        NR31_ = 0x00;
+        NR32_ = 0x00;
+        NR33_ = 0x00;
+        NR34_ = 0x00;
+    }
+
+    sampleIndex_ = 0;
+    lastSample_ = 0.0;
+    triggered_ = false;
+}
+
 void Channel3::Clock()
 {
     ++periodDivider_;
@@ -134,18 +158,6 @@ void Channel3::Write(uint8_t const ioAddr, uint8_t const data)
         default:
             break;
     }
-}
-
-void Channel3::Reset()
-{
-    NR30_ = 0x7F;
-    NR31_ = 0xFF;
-    NR32_ = 0x9F;
-    NR33_ = 0xFF;
-    NR34_ = 0xBF;
-    sampleIndex_ = 0;
-    lastSample_ = 0.0;
-    triggered_ = false;
 }
 
 void Channel3::Trigger()

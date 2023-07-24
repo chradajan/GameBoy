@@ -10,6 +10,8 @@ class APU
 {
 public:
     void Clock();
+    void PowerOn(bool skipBootRom);
+
     void GetAudioSample(float* left, float* right);
 
     void ClockDIV(bool doubleSpeed);
@@ -18,8 +20,6 @@ public:
 
     uint8_t Read(uint8_t ioAddr);
     void Write(uint8_t ioAddr, uint8_t data);
-
-    void Reset();
 
 private:
     float HPF(float input);

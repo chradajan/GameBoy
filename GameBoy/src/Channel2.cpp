@@ -1,5 +1,27 @@
 #include <Channel2.hpp>
 
+void Channel2::PowerOn(bool const skipBootRom)
+{
+    if (skipBootRom)
+    {
+        NR21_ = 0x3F;
+        NR22_ = 0x00;
+        NR23_ = 0xFF;
+        NR24_ = 0xBF;
+    }
+    else
+    {
+        NR21_ = 0x00;
+        NR22_ = 0x00;
+        NR23_ = 0x00;
+        NR24_ = 0x00;
+    }
+
+    dutyStep_ = 0;
+    dacEnabled_ = false;
+    triggered_ = false;
+}
+
 void Channel2::Clock()
 {
     ++periodDivider_;
@@ -105,17 +127,6 @@ void Channel2::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
     }
-}
-
-void Channel2::Reset()
-{
-    NR21_ = 0x00;
-    NR22_ = 0x00;
-    NR23_ = 0x00;
-    NR24_ = 0x00;
-    dutyStep_ = 0;
-    dacEnabled_ = false;
-    triggered_ = false;
 }
 
 void Channel2::Trigger()

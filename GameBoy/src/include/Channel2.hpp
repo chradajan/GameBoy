@@ -5,6 +5,8 @@
 class Channel2
 {
 public:
+    void PowerOn(bool skipBootRom);
+
     void Clock();
     void ClockEnvelope();
     void ClockLengthTimer();
@@ -16,8 +18,6 @@ public:
 
     uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
-
-    void Reset();
 
 private:
     void Trigger();

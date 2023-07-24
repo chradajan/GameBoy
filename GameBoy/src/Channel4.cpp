@@ -1,5 +1,26 @@
 #include <Channel4.hpp>
 
+void Channel4::PowerOn(bool const skipBootRom)
+{
+    if (skipBootRom)
+    {
+        NR41_ = 0xFF;
+        NR42_ = 0x00;
+        NR43_ = 0x00;
+        NR44_ = 0xBF;
+    }
+    else
+    {
+        NR41_ = 0x00;
+        NR42_ = 0x00;
+        NR43_ = 0x00;
+        NR44_ = 0x00;
+    }
+
+    dacEnabled_ = false;
+    triggered_ = false;
+}
+
 void Channel4::Clock()
 {
     ++lsfrCounter_;
@@ -117,16 +138,6 @@ void Channel4::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
     }
-}
-
-void Channel4::Reset()
-{
-    NR41_ = 0xFF;
-    NR42_ = 0x00;
-    NR43_ = 0x00;
-    NR44_ = 0xBF;
-    dacEnabled_ = false;
-    triggered_ = false;
 }
 
 void Channel4::Trigger()

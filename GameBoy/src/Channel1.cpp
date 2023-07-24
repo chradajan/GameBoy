@@ -1,5 +1,29 @@
 #include <Channel1.hpp>
 
+void Channel1::PowerOn(bool const skipBootRom)
+{
+    if (skipBootRom)
+    {
+        NR10_ = 0x80;
+        NR11_ = 0xBF;
+        NR12_ = 0xF3;
+        NR13_ = 0xFF;
+        NR14_ = 0xBF;
+    }
+    else
+    {
+        NR10_ = 0x00;
+        NR11_ = 0x00;
+        NR12_ = 0x00;
+        NR13_ = 0x00;
+        NR14_ = 0x00;
+    }
+
+    dutyStep_ = 0;
+    dacEnabled_ = false;
+    triggered_ = false;
+}
+
 void Channel1::Clock()
 {
     ++periodDivider_;
@@ -163,18 +187,6 @@ void Channel1::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
     }
-}
-
-void Channel1::Reset()
-{
-    NR10_ = 0x80;
-    NR11_ = 0xBF;
-    NR12_ = 0xF3;
-    NR13_ = 0xFF;
-    NR14_ = 0xBF;
-    dutyStep_ = 0;
-    dacEnabled_ = false;
-    triggered_ = false;
 }
 
 void Channel1::Trigger()
