@@ -1,4 +1,4 @@
-#include <CGB.hpp>
+#include <GBC.hpp>
 #include <GameBoy.hpp>
 #include <filesystem>
 #include <iostream>

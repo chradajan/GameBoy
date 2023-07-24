@@ -12,7 +12,7 @@ set(SOURCES
     src/Cartridge/MBC1.cpp
     src/Cartridge/MBC3.cpp
     src/Cartridge/MBC5.cpp
-    src/CGB.cpp
+    src/GBC.cpp
     src/Channel1.cpp
     src/Channel2.cpp
     src/Channel3.cpp
@@ -34,7 +34,7 @@ add_library(GameBoy SHARED ${SOURCES})
 
 set_target_properties(GameBoy PROPERTIES
     VERSION ${PROJECT_VERSION}
-    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/CGB.hpp
+    PUBLIC_HEADER ${PROJECT_SOURCE_DIR}/include/GBC.hpp
     RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib
     ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/lib)
 
