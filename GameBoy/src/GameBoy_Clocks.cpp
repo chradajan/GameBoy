@@ -132,7 +132,6 @@ void GameBoy::ClockVramDma()
         if (gdmaInProgress_)
         {
             gdmaInProgress_ = false;
-            SetHDMARegisters();
             ioReg_[IO::HDMA5] = 0xFF;
             transferActive_ = false;
         }
@@ -144,7 +143,6 @@ void GameBoy::ClockVramDma()
             if (vramDmaBlocksRemaining_ == 0)
             {
                 hdmaInProgress_ = false;
-                SetHDMARegisters();
                 ioReg_[IO::HDMA5] = 0xFF;
             }
         }

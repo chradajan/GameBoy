@@ -498,7 +498,7 @@ void PPU::WriteIoReg(uint8_t ioAddr, uint8_t data)
                 frameReady_ = false;
                 vBlank_ = false;
                 wyCondition_ = false;
-                STAT_ &= 0xF8;
+                STAT_ &= 0xFC;
             }
             else if (!wasEnabled && isEnabled)
             {
