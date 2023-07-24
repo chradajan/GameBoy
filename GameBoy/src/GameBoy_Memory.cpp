@@ -213,6 +213,7 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
         case IO::VBK:
         case IO::BCPS ... IO::OPRI:
             ppu_.Write(addr, data);
+            break;
 
         case IO::NR10 ... IO::WAVE_RAM_END:  // APU
             apu_.Write(ioAddr, data);
