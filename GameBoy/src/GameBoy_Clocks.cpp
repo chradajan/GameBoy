@@ -77,7 +77,6 @@ void GameBoy::ClockVariableSpeedComponents(bool const clockCpu)
         ClockOamDma();
     }
 
-    apu_.ClockDIV(DoubleSpeedMode());
     ClockTimer();
 }
 
