@@ -16,11 +16,7 @@ GameBoy::GameBoy() :
          std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2),
          std::bind(&GameBoy::AcknowledgeInterrupt, this),
          std::bind(&GameBoy::Stop, this, std::placeholders::_1)),
-    ppu_({ioReg_[IO::LCDC], ioReg_[IO::STAT], ioReg_[IO::SCY], ioReg_[IO::SCX], ioReg_[IO::LY], ioReg_[IO::LYC], ioReg_[IO::WY], ioReg_[IO::WX]},
-         {ioReg_[IO::BGP], ioReg_[IO::OBP0], ioReg_[IO::OBP1], BG_CRAM_, OBJ_CRAM_},
-         {ioReg_[IO::OPRI], OAM_},
-         VRAM_,
-         cgbMode_),
+    ppu_(cgbMode_),
     cartridge_(nullptr)
 {
 }
@@ -137,7 +133,53 @@ void GameBoy::PowerOn()
         ppu_.SetDmgColorMode(false);
     }
 
-    Reset();
+    for (auto& bank : WRAM_)
+    {
+        bank.fill(0x00);
+    }
+
+    HRAM_.fill(0x00);
+
+    if (runningBootRom_)
+    {
+        ioReg_.fill(0x00);
+    }
+    else
+    {
+        SetDefaultCgbIoValues();
+    }
+
+    stopped_ = false;
+
+    speedSwitchCountdown_ = 0;
+
+    serialOutData_ = 0x00;
+    serialBitsSent_ = 0;
+    serialTransferCounter_ = 0;
+    serialClockDivider_ = 128;
+    serialTransferInProgress_ = false;
+
+    timerCounter_ = 0;
+    timerControl_ = 0;
+    timerEnabled_ = false;
+    timerReload_ = false;
+
+    oamDmaInProgress_ = false;
+    oamDmaCyclesRemaining_ = 0;
+    oamDmaSrcAddr_ = 0x0000;
+    oamDmaDestAddr_ = 0x0000;
+
+    wasMode0_ = false;
+    gdmaInProgress_ = false;
+    hdmaInProgress_ = false;
+    transferActive_ = false;
+
+    lastPendingInterrupt_ = 0x00;
+    prevStatState_ = false;
+
+    apu_.Reset();
+    cpu_.Reset(runningBootRom_);
+    ppu_.PowerOn(!runningBootRom_);
 }
 
 void GameBoy::Clock()
@@ -226,65 +268,6 @@ void GameBoy::SetInputs(bool const down,
     }
 }
 
-void GameBoy::Reset()
-{
-    for (auto& bank : VRAM_)
-    {
-        bank.fill(0x00);
-    }
-
-    for (auto& bank : WRAM_)
-    {
-        bank.fill(0x00);
-    }
-
-    OAM_.fill(0x00);
-    HRAM_.fill(0x00);
-    BG_CRAM_.fill(0x00);
-    OBJ_CRAM_.fill(0x00);
-
-    if (!runningBootRom_)
-    {
-        SetDefaultCgbIoValues();
-    }
-    else
-    {
-        ioReg_.fill(0x00);
-    }
-
-    stopped_ = false;
-
-    speedSwitchCountdown_ = 0;
-
-    serialOutData_ = 0x00;
-    serialBitsSent_ = 0;
-    serialTransferCounter_ = 0;
-    serialClockDivider_ = 128;
-    serialTransferInProgress_ = false;
-
-    timerCounter_ = 0;
-    timerControl_ = 0;
-    timerEnabled_ = false;
-    timerReload_ = false;
-
-    oamDmaInProgress_ = false;
-    oamDmaCyclesRemaining_ = 0;
-    oamDmaSrcAddr_ = 0x0000;
-    oamIndexDest_ = 0;
-
-    wasMode0_ = false;
-    gdmaInProgress_ = false;
-    hdmaInProgress_ = false;
-    transferActive_ = false;
-
-    lastPendingInterrupt_ = 0x00;
-    prevStatState_ = false;
-
-    apu_.Reset();
-    cpu_.Reset(runningBootRom_);
-    ppu_.Reset();
-}
-
 void GameBoy::UpdateInputs()
 {
     SetInputs(buttons_.down, buttons_.up, buttons_.left, buttons_.right, buttons_.start, buttons_.select, buttons_.b, buttons_.a);
@@ -345,7 +328,7 @@ void GameBoy::AcknowledgeInterrupt()
 
 void GameBoy::CheckVBlankInterrupt()
 {
-    if (ppu_.LCDEnabled() && ppu_.VBlank())
+    if (ppu_.VBlank())
     {
         ioReg_[IO::IF] |= INT_SRC::VBLANK;
     }
@@ -359,27 +342,28 @@ void GameBoy::CheckStatInterrupt()
     }
 
     bool currStatState = false;
+    uint_fast8_t STAT = ppu_.STAT();
 
     // Check for LYC=LY interrupt
-    if ((ioReg_[IO::STAT] & 0x44) == 0x44)
+    if ((STAT & 0x44) == 0x44)
     {
         currStatState = true;
     }
     else
     {
         // Check for Mode interrupt
-        uint_fast8_t ppuMode = (ioReg_[IO::STAT] & 0x03);
+        uint_fast8_t ppuMode = (STAT & 0x03);
 
         switch (ppuMode)
         {
             case 0:
-                currStatState = (ioReg_[IO::STAT] & 0x08);
+                currStatState = (STAT & 0x08);
                 break;
             case 1:
-                currStatState = (ioReg_[IO::STAT] & 0x10);
+                currStatState = (STAT & 0x10);
                 break;
             case 2:
-                currStatState = (ioReg_[IO::STAT] & 0x20);
+                currStatState = (STAT & 0x20);
                 break;
             default:
                 break;

@@ -47,7 +47,6 @@ private:
     uint16_t LFSR_;
     uint16_t lsfrCounter_;
     uint16_t lsfrDivider_;
-    bool shortMode_;
 
     // DAC
     bool dacEnabled_;

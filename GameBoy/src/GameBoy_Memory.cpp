@@ -3,7 +3,7 @@
 
 uint8_t GameBoy::Read(uint16_t addr)
 {
-    if (addr < 0x8000)
+    if (addr < 0x8000)  // Cartridge ROM
     {
         if (runningBootRom_)
         {
@@ -22,68 +22,47 @@ uint8_t GameBoy::Read(uint16_t addr)
             }
         }
 
-        // Cartridge ROM
         return cartridge_->ReadROM(addr);
     }
-    else if (addr < 0xA000)
+    else if (addr < 0xA000)  // VRAM
     {
-        // VRAM
-        if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-        {
-            return 0xFF;
-        }
-
-        uint_fast8_t vramBank = cgbMode_ ? (ioReg_[IO::VBK] & 0x01) : 0;
-        return VRAM_[vramBank][addr - 0x8000];
+        return ppu_.Read(addr);
     }
-    else if (addr < 0xC000)
+    else if (addr < 0xC000) // Cartridge RAM
     {
-        // Cartridge RAM
         return cartridge_->ReadRAM(addr);
     }
-    else if (addr < 0xD000)
+    else if (addr < 0xD000)  // WRAM Bank 0
     {
-        // WRAM Bank 0
         return WRAM_[0][addr - 0xC000];
     }
-    else if (addr < 0xE000)
+    else if (addr < 0xE000)  // WRAM Banks 1-7
     {
-        // WRAM Banks 1-7
         uint8_t ramBank = (!cgbMode_ || (ioReg_[IO::SVBK] == 0x00)) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         return WRAM_[ramBank][addr - 0xD000];
     }
-    else if (addr < 0xFE00)
+    else if (addr < 0xFE00)  // ECHO RAM, prohibited, TODO
     {
-        // ECHO RAM, prohibited, TODO
         return 0xFF;
     }
-    else if (addr < 0xFEA0)
+    else if (addr < 0xFEA0)  // OAM
     {
-        if (ppu_.LCDEnabled() && ((ppu_.GetMode() == 2) || (ppu_.GetMode() == 3)))
-        {
-            return 0xFF;
-        }
-
-        return OAM_[addr - 0xFE00];
+        return ppu_.Read(addr);
     }
-    else if (addr < 0xFF00)
+    else if (addr < 0xFF00)  // Unusable, prohibited, TODO
     {
-        // Unusable, prohibited, TODO
         return 0xFF;
     }
-    else if (addr < 0xFF80)
+    else if (addr < 0xFF80)  // I/O Registers
     {
-        // I/O Registers
         return ReadIoReg(addr);
     }
-    else if (addr < 0xFFFF)
+    else if (addr < 0xFFFF)  // HRAM
     {
-        // HRAM
         return HRAM_[addr - 0xFF80];
     }
-    else if (addr == 0xFFFF)
+    else if (addr == 0xFFFF)  // Interrupt Enable Register
     {
-        // Interrupt Enable Register
         return IE_;
     }
 
@@ -92,70 +71,49 @@ uint8_t GameBoy::Read(uint16_t addr)
 
 void GameBoy::Write(uint16_t addr, uint8_t data)
 {
-    if (addr < 0x8000)
+    if (addr < 0x8000)  // Cartridge ROM
     {
-        // Cartridge ROM
         cartridge_->WriteROM(addr, data);
     }
-    else if (addr < 0xA000)
+    else if (addr < 0xA000)  // VRAM
     {
-        // VRAM
-        if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-        {
-            return;
-        }
-
-        uint_fast8_t vramBank = cgbMode_ ? (ioReg_[IO::VBK] & 0x01) : 0;
-        VRAM_[vramBank][addr - 0x8000] = data;
+        ppu_.Write(addr, data);
     }
-    else if (addr < 0xC000)
+    else if (addr < 0xC000)  // Cartridge RAM
     {
-        // Cartridge RAM
         cartridge_->WriteRAM(addr, data);
     }
-    else if (addr < 0xD000)
+    else if (addr < 0xD000)  // WRAM Bank 0
     {
-        // WRAM Bank 0
         WRAM_[0][addr - 0xC000] = data;
     }
-    else if (addr < 0xE000)
+    else if (addr < 0xE000)  // WRAM Banks 1-7
     {
-        // WRAM Banks 1-7
         uint8_t ramBank = (!cgbMode_ || (ioReg_[IO::SVBK] == 0x00)) ? 0x01 : (ioReg_[IO::SVBK] & 0x07);
         WRAM_[ramBank][addr - 0xD000] = data;
     }
-    else if (addr < 0xFE00)
+    else if (addr < 0xFE00)  // ECHO RAM, prohibited, TODO
     {
-        // ECHO RAM, prohibited, TODO
-    }
-    else if (addr < 0xFEA0)
-    {
-        // OAM
 
-        if (ppu_.LCDEnabled() && ((ppu_.GetMode() == 2) || (ppu_.GetMode() == 3)))
-        {
-            return;
-        }
+    }
+    else if (addr < 0xFEA0)   // OAM
+    {
+        ppu_.Write(addr, data);
+    }
+    else if (addr < 0xFF00)  // Unusable, prohibited, TODO
+    {
 
-        OAM_[addr - 0xFE00] = data;
     }
-    else if (addr < 0xFF00)
+    else if (addr < 0xFF80)  // I/O Registers
     {
-        // Unusable, prohibited, TODO
-    }
-    else if (addr < 0xFF80)
-    {
-        // I/O Registers
         WriteIoReg(addr, data);
     }
-    else if (addr < 0xFFFF)
+    else if (addr < 0xFFFF) // HRAM
     {
-        // HRAM
         HRAM_[addr - 0xFF80] = data;
     }
-    else if (addr == 0xFFFF)
+    else if (addr == 0xFFFF)  // Interrupt Enable Register
     {
-        // Interrupt Enable Register
         IE_ = data;
     }
 }
@@ -183,29 +141,19 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
         case IO::IF:  // Interrupt flag
             return ioReg_[IO::IF];
 
-        case IO::NR10 ... IO::WAVE_RAM_END:
+        case IO::LCDC ... IO::LYC:  // PPU
+        case IO::BGP ... IO::WX:
+        case IO::VBK:
+        case IO::BCPS ... IO::OPRI:
+            return ppu_.Read(addr);
+
+        case IO::NR10 ... IO::WAVE_RAM_END:  // APU
             return apu_.Read(ioAddr);
 
-        case IO::LCDC:  // LCD control
-            return ioReg_[IO::LCDC];
-        case IO::STAT:  // LCD Status
-            return ppu_.LCDEnabled() ? (ioReg_[IO::STAT] | 0x80) : ((ioReg_[IO::STAT] | 0x80) & 0xFC);
-        case IO::SCY ... IO::SCX:  // Viewport position
-            return ioReg_[ioAddr];
-        case IO::LY:  // LCD Y coordinate
-            return ppu_.LCDEnabled() ? ioReg_[IO::LY] : 0;
-        case IO::LYC:  // LY compare
-            return ioReg_[IO::LYC];
         case IO::DMA:  // OAM DMA
             return ioReg_[IO::DMA];
-        case IO::BGP ... IO::OBP1:  // DMG palettes
-            return ioReg_[ioAddr];
-        case IO::WY ... IO::WX:  // Window position
-            return ioReg_[ioAddr];
         case IO::KEY1:  // Speed switch
             return ioReg_[IO::KEY1];
-        case IO::VBK:  // VRAM bank
-            return ioReg_[IO::VBK];
         case IO::HDMA5:
         {
             if (hdmaInProgress_)
@@ -217,30 +165,6 @@ uint8_t GameBoy::ReadIoReg(uint16_t addr)
         }
         case IO::RP:  // Infrared communication port
             return 0xFF;
-        case IO::BCPS:  // Background color palette specification
-            return ioReg_[IO::BCPS];
-        case IO::BCPD:  // Background color palette data
-        {
-            if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-            {
-                return 0xFF;
-            }
-
-            return BG_CRAM_[ioReg_[IO::BCPS] & 0x3F];
-        }
-        case IO::OCPS:  // OBJ color palette specification
-            return ioReg_[IO::OCPS];
-        case IO::OCPD:  // OBJ color palette data
-        {
-            if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-            {
-                return 0xFF;
-            }
-
-            return OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F];
-        }
-        case IO::OPRI:  // OBJ priority mode
-            return ioReg_[IO::OPRI];
         case IO::SVBK:  // WRAM bank
             return ioReg_[IO::SVBK];
         case IO::ff72 ... IO::ff75:
@@ -284,53 +208,21 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             ioReg_[IO::IF] = (data | 0xE0);
             break;
 
-        case IO::NR10 ... IO::WAVE_RAM_END:
+        case IO::LCDC ... IO::LYC:  // PPU
+        case IO::BGP ... IO::WX:
+        case IO::VBK:
+        case IO::BCPS ... IO::OPRI:
+            ppu_.Write(addr, data);
+
+        case IO::NR10 ... IO::WAVE_RAM_END:  // APU
             apu_.Write(ioAddr, data);
             break;
 
-        case IO::LCDC:  // LCD control
-        {
-            bool currentlyEnabled = ppu_.LCDEnabled();
-            ioReg_[IO::LCDC] = data;
-
-            if (!ppu_.LCDEnabled())
-            {
-                ppu_.Reset();
-                ioReg_[IO::STAT] &= 0xFC;
-            }
-            else if (!currentlyEnabled && ppu_.LCDEnabled())
-            {
-                ppu_.Reset();
-            }
-            break;
-        }
-        case IO::STAT:  // LCD status
-            data &= 0x78;
-            ioReg_[IO::STAT] &= 0x07;
-            ioReg_[IO::STAT] |= (data | 0x80);
-            break;
-        case IO::SCY ... IO::SCX:  // Viewport position
-            ioReg_[ioAddr] = data;
-            break;
-        case IO::LY:  // LCD Y coordinate
-            break;
-        case IO::LYC:  // LY compare
-            ioReg_[IO::LYC] = data;
-            break;
         case IO::DMA:  // OAM DMA source address
             IoWriteDMA(data);
             break;
-        case IO::BGP ... IO::OBP1:  // DMG palettes
-            ioReg_[ioAddr] = data;
-            break;
-        case IO::WY ... IO::WX:  // Window position
-            ioReg_[ioAddr] = data;
-            break;
         case IO::KEY1:  // Speed switch
             ioReg_[IO::KEY1] = (ioReg_[IO::KEY1] & 0x80) | (data & 0x01) | 0x7E;
-            break;
-        case IO::VBK:  // VRAM bank
-            ioReg_[IO::VBK] = (data | 0xFE);
             break;
         case IO::UNMAP_BOOT_ROM:  // Boot ROM disable
             if (runningBootRom_)
@@ -346,24 +238,6 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
             IoWriteVramDMA(data);
             break;
         case IO::RP:  // Infrared communication port
-            break;
-        case IO::BCPS:  // Background color palette specification
-            ioReg_[IO::BCPS] = (data & 0xBF);
-            break;
-        case IO::BCPD:  // Background color palette data
-            IoWriteBCPD(data);
-            break;
-        case IO::OCPS:  // OBJ color palette specification
-            ioReg_[IO::OCPS] = (data & 0xBF);
-            break;
-        case IO::OCPD:  // OBJ color palette data
-            IoWriteOCPD(data);
-            break;
-        case IO::OPRI:  // OBJ priority mode
-            if (runningBootRom_)
-            {
-                ioReg_[IO::OPRI] = data | 0xFE;
-            }
             break;
         case IO::SVBK:  // WRAM bank
             ioReg_[IO::SVBK] = data;
@@ -450,7 +324,7 @@ void GameBoy::IoWriteDMA(uint8_t data)
     oamDmaInProgress_ = true;
     oamDmaCyclesRemaining_ = 160;
     oamDmaSrcAddr_ = data << 8;
-    oamIndexDest_ = 0;
+    oamDmaDestAddr_ = 0xFE00;
 }
 
 void GameBoy::IoWriteVramDMA(uint8_t data)
@@ -487,46 +361,6 @@ void GameBoy::IoWriteVramDMA(uint8_t data)
     }
 }
 
-void GameBoy::IoWriteBCPD(uint8_t data)
-{
-    if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-    {
-        if (ioReg_[IO::BCPS] & 0x80)
-        {
-            ioReg_[IO::BCPS] = (ioReg_[IO::BCPS] & 0xC0) | ((ioReg_[IO::BCPS] + 1) & 0x3F);
-        }
-
-        return;
-    }
-
-    BG_CRAM_[ioReg_[IO::BCPS] & 0x3F] = data;
-
-    if (ioReg_[IO::BCPS] & 0x80)
-    {
-        ioReg_[IO::BCPS] = (ioReg_[IO::BCPS] & 0xC0) | ((ioReg_[IO::BCPS] + 1) & 0x3F);
-    }
-}
-
-void GameBoy::IoWriteOCPD(uint8_t data)
-{
-    if (ppu_.LCDEnabled() && (ppu_.GetMode() == 3))
-    {
-        if (ioReg_[IO::OCPS] & 0x80)
-        {
-            ioReg_[IO::OCPS] = (ioReg_[IO::OCPS] & 0xC0) | ((ioReg_[IO::OCPS] + 1) & 0x3F);
-        }
-
-        return;
-    }
-
-    OBJ_CRAM_[ioReg_[IO::OCPS] & 0x3F] = data;
-
-    if (ioReg_[IO::OCPS] & 0x80)
-    {
-        ioReg_[IO::OCPS] = (ioReg_[IO::OCPS] & 0xC0) | ((ioReg_[IO::OCPS] + 1) & 0x3F);
-    }
-}
-
 void GameBoy::SetHDMARegisters()
 {
     ioReg_[IO::HDMA1] = (vramDmaSrc_ & 0xFF00) >> 8;
@@ -552,31 +386,15 @@ void GameBoy::SetDefaultCgbIoValues()
     ioReg_[IO::TAC] = 0xF8;
     ioReg_[IO::IF] = 0xE1;
     // Audio registers initialized in APU
-    ioReg_[IO::LCDC] = 0x91;
-    // ioReg_[IO::STAT] = ?;
-    ioReg_[IO::SCY] = 0x00;
-    ioReg_[IO::SCX] = 0x00;
-    // ioReg_[IO::LY] = ?;
-    ioReg_[IO::LYC] = 0x00;
+    // PPU registers initialized in PPU
     ioReg_[IO::DMA] = 0x00;
-    ioReg_[IO::BGP] = 0xFC;
-    // ioReg_[IO::OBP0] = ?;
-    // ioReg_[IO::OBP1] = ?;
-    ioReg_[IO::WY] = 0x00;
-    ioReg_[IO::WX] = 0x00;
     ioReg_[IO::KEY1] = 0xFF;
-    ioReg_[IO::VBK] = 0xFF;
     ioReg_[IO::HDMA1] = 0xFF;
     ioReg_[IO::HDMA2] = 0xFF;
     ioReg_[IO::HDMA3] = 0xFF;
     ioReg_[IO::HDMA4] = 0xFF;
     ioReg_[IO::HDMA5] = 0xFF;
     ioReg_[IO::RP] = 0xFF;
-    // ioReg_[IO::BCPS] = ?;
-    // ioReg_[IO::BCPD] = ?;
-    // ioReg_[IO::OCPS] = ?;
-    // ioReg_[IO::OCPD] = ?;
-    // ioReg_[IO::OPRI] = ?;
     ioReg_[IO::SVBK] = 0xFF;
     ioReg_[IO::ff72] = 0x00;
     ioReg_[IO::ff73] = 0x00;

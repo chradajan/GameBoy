@@ -18,11 +18,11 @@ void GameBoy::RunMCycle()
                 ClockVariableSpeedComponents(!transferActive_);
 
                 apu_.Clock();
-                ppu_.Clock(oamDmaInProgress_);
+                ppu_.Clock();
                 break;
             }
             case 1:
-                ppu_.Clock(oamDmaInProgress_);
+                ppu_.Clock();
                 break;
             case 2:
                 if (DoubleSpeedMode())
@@ -30,11 +30,11 @@ void GameBoy::RunMCycle()
                     ClockVariableSpeedComponents(!transferActive_);
                 }
 
-                ppu_.Clock(oamDmaInProgress_);
+                ppu_.Clock();
                 break;
             case 3:
             {
-                ppu_.Clock(oamDmaInProgress_);
+                ppu_.Clock();
                 break;
             }
         }
@@ -113,7 +113,7 @@ void GameBoy::ClockTimer()
 
 void GameBoy::ClockOamDma()
 {
-    OAM_[oamIndexDest_++] = Read(oamDmaSrcAddr_++);
+    ppu_.Write(oamDmaDestAddr_++, Read(oamDmaSrcAddr_++), true);
     --oamDmaCyclesRemaining_;
 
     if (oamDmaCyclesRemaining_ == 0)

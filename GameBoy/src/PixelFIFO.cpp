@@ -136,7 +136,7 @@ bool PixelFIFO::SwitchToWindow() const
             ppuPtr_->WindowEnabled() &&
             (ppuPtr_->cgbMode_ || (!ppuPtr_->cgbMode_ && ppuPtr_->WindowAndBackgroundEnabled())) &&
             ppuPtr_->wyCondition_ &&
-            (ppuPtr_->LX_ + 7 >= ppuPtr_->reg_.WX));
+            (ppuPtr_->LX_ + 7 >= ppuPtr_->WX_));
 }
 
 void PixelFIFO::ClockSpriteFetcher()
@@ -161,7 +161,7 @@ void PixelFIFO::ClockSpriteFetcher()
             spriteFetcher_.vramBank = ppuPtr_->cgbMode_ ? spriteToLoad.flags.cgbTileBank : 0;
             spriteFetcher_.palette = ppuPtr_->cgbMode_ ? spriteToLoad.flags.cgbPalette : spriteToLoad.flags.dmgPalette;
 
-            uint_fast8_t spriteY = (ppuPtr_->reg_.LY + 16) - spriteToLoad.yPos;
+            uint_fast8_t spriteY = (ppuPtr_->LY_ + 16) - spriteToLoad.yPos;
 
             if (ppuPtr_->TallSpriteMode())
             {
@@ -288,8 +288,8 @@ void PixelFIFO::ClockBackgroundFetcher()
             else
             {
                 backgroundFetcher_.tileAddr = ppuPtr_->BackgroundTileMapBaseAddr();
-                fetcherX_ = (fifoState_ == FifoState::FETCHING_FIRST_SLICE) ? ppuPtr_->reg_.SCX / 8 : (fetcherX_ + 1) % 32;
-                uint8_t temp = ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY;
+                fetcherX_ = (fifoState_ == FifoState::FETCHING_FIRST_SLICE) ? ppuPtr_->SCX_ / 8 : (fetcherX_ + 1) % 32;
+                uint8_t temp = ppuPtr_->LY_ + ppuPtr_->SCY_;
                 backgroundFetcher_.tileAddr |= ((temp / 8) << 5);
                 backgroundFetcher_.tileAddr |= fetcherX_;
             }
@@ -320,7 +320,7 @@ void PixelFIFO::ClockBackgroundFetcher()
         case 4:     // Get tile data low
         {
             uint_fast8_t row = fetchingWindow_ ? (ppuPtr_->windowY_ % 8) :
-                                                 ((ppuPtr_->reg_.LY + ppuPtr_->reg_.SCY) % 8);
+                                                 ((ppuPtr_->LY_ + ppuPtr_->SCY_) % 8);
 
             if (backgroundFetcher_.verticalFlip)
             {
@@ -359,8 +359,8 @@ void PixelFIFO::ClockBackgroundFetcher()
 
                 if (fifoState_ == FifoState::FETCHING_FIRST_SLICE)
                 {
-                    pixelsToScroll_ = fetchingWindow_ ? ((ppuPtr_->LX_ + 7) - ppuPtr_->reg_.WX) :
-                                                        (ppuPtr_->reg_.SCX % 8);
+                    pixelsToScroll_ = fetchingWindow_ ? ((ppuPtr_->LX_ + 7) - ppuPtr_->WX_) :
+                                                        (ppuPtr_->SCX_ % 8);
 
                     fifoState_ = (pixelsToScroll_ > 0) ? FifoState::SCROLLING_FIRST_SLICE :
                                                          FifoState::RENDERING_PIXELS;

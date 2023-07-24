@@ -63,29 +63,11 @@ enum : uint8_t
     WAVE_RAM_START = 0x30, // First index of Wave RAM
     WAVE_RAM_END = 0x3F,   // Last index of Wave RAM
 
-    // LCD
-    LCDC = 0x40, // LCD control
-    STAT = 0x41, // LCD status
-    SCY = 0x42,  // Viewport Y position
-    SCX = 0x43,  // Viewport X position
-    LY = 0x44,   // LCD Y coordinate
-    LYC = 0x45,  // LY compare
-
     // OAM
     DMA = 0x46, // OAM DMA source address
 
-    // LCD
-    BGP = 0x47,  // BG palette data (Non-CGB mode only)
-    OBP0 = 0x48, // OBJ palette 0 data (Non-CGB mode only)
-    OBP1 = 0x49, // OBJ palette 1 data (Non-CGB mode only)
-    WY = 0x4A,   // Window y position
-    WX = 0x4B,   // Window x position
-
     // Speed switch
     KEY1 = 0x4D, // Prepare speed switch (CGB mode only)
-
-    // VRAM
-    VBK = 0x4F, // VRAM bank (CGB mode only)
 
     // Boot ROM
     UNMAP_BOOT_ROM = 0x50, // Boot ROM disable
@@ -99,14 +81,6 @@ enum : uint8_t
 
     // Infrared
     RP = 0x56, // Infrared communication port (CGB mode only)
-
-    // LCD
-    BCPS = 0x68, // Background color palette specification (CGB mode only)
-    BCPD = 0x69, // Background color palette data (CGB mode only)
-
-    OCPS = 0x6A, // OBJ color palette specification (CGB mode only)
-    OCPD = 0x6B, // OBJ color palette data (CGB mode only)
-    OPRI = 0x6C, // OBJ priority mode (CGB mode only)
 
     // WRAM
     SVBK = 0x70, // WRAM bank
@@ -173,9 +147,6 @@ public:
     void SetInputs(bool down, bool up, bool left, bool right, bool start, bool select, bool b, bool a);
 
 private:
-    /// @brief Reset the GameBoy to its power-on state.
-    void Reset();
-
     void RunMCycle();
 
     void ClockVariableSpeedComponents(bool clockCpu);
@@ -246,8 +217,6 @@ private:
     void IoWriteTAC(uint8_t data);
     void IoWriteDMA(uint8_t data);
     void IoWriteVramDMA(uint8_t data);
-    void IoWriteBCPD(uint8_t data);
-    void IoWriteOCPD(uint8_t data);
 
     void SetHDMARegisters();
     void SetVramDmaAddresses();
@@ -255,12 +224,8 @@ private:
     void SetDefaultCgbIoValues();
 
     // Memory
-    std::array<std::array<uint8_t, 0x2000>, 2> VRAM_;  // $8000 ... $9FFF
     std::array<std::array<uint8_t, 0x1000>, 8> WRAM_;  // $C000 ... $DFFF
-    std::array<uint8_t, 0xA0> OAM_;  // $FE00 ... $FE9F
     std::array<uint8_t, 0x7F> HRAM_;  // $FF80 ... $FFFE
-    std::array<uint8_t, 0x40> BG_CRAM_;  // Background palette data accessed through BCPS/BCPD
-    std::array<uint8_t, 0x40> OBJ_CRAM_;  // OBJ palette data accessed through OCPS/OCPD
     std::array<uint8_t, 0x900> BOOT_ROM;  // Boot ROM
     uint8_t* frameBuffer_;
 
@@ -315,7 +280,7 @@ private:
     bool oamDmaInProgress_;
     uint8_t oamDmaCyclesRemaining_;
     uint16_t oamDmaSrcAddr_;
-    uint8_t oamIndexDest_;
+    uint16_t oamDmaDestAddr_;
 
     // VRAM DMA
     uint8_t vramDmaBlocksRemaining_;
