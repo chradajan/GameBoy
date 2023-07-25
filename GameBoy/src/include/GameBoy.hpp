@@ -115,7 +115,6 @@ public:
     GameBoy();
 
     void Initialize(uint8_t* frameBuffer,
-                    std::filesystem::path logPath,
                     std::filesystem::path savePath,
                     std::filesystem::path bootRomPath);
 
@@ -237,7 +236,6 @@ private:
     } buttons_;
 
     // Paths
-    std::filesystem::path logDirectory_;
     std::filesystem::path saveDirectory_;
     std::filesystem::path bootRomDirectory_;
 

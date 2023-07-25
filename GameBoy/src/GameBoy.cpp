@@ -21,12 +21,10 @@ GameBoy::GameBoy() :
 }
 
 void GameBoy::Initialize(uint8_t* frameBuffer,
-                         std::filesystem::path const logPath,
                          std::filesystem::path const savePath,
                          std::filesystem::path const bootRomPath)
 {
     frameBuffer_ = frameBuffer;
-    logDirectory_ = logPath;
     saveDirectory_ = savePath;
     bootRomDirectory_ = bootRomPath;
     ppu_.SetFrameBuffer(frameBuffer);

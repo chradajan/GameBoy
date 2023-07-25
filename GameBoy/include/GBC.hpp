@@ -5,7 +5,6 @@
 extern "C"
 {
 void Initialize(uint8_t* frameBuffer,
-                char* logPath,
                 char* savePath,
                 char* bootRomPath);
 

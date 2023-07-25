@@ -11,25 +11,18 @@ constexpr int CPU_CLOCK_FREQUENCY = 1048576;
 constexpr float CPU_CLOCK_PERIOD = 1.0 / CPU_CLOCK_FREQUENCY;
 
 void Initialize(uint8_t* frameBuffer,
-                char* const logPath,
                 char* const savePath,
                 char* const bootRomPath)
 {
-    std::filesystem::path logPathFS = logPath;
     std::filesystem::path savePathFS = savePath;
     std::filesystem::path bootRomPathFS = bootRomPath;
-
-    if (!std::filesystem::is_directory(logPathFS))
-    {
-        std::filesystem::create_directory(logPathFS);
-    }
 
     if (!std::filesystem::is_directory(savePathFS))
     {
         std::filesystem::create_directory(savePathFS);
     }
 
-    gb->Initialize(frameBuffer, logPath, savePath, bootRomPath);
+    gb->Initialize(frameBuffer, savePath, bootRomPath);
 }
 
 void InsertCartridge(char* romPath)
