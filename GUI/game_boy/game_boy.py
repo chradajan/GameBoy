@@ -3,7 +3,8 @@
 import ctypes
 import sys
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import Tuple
 
 WIDTH = 160
 HEIGHT = 144
@@ -36,23 +37,24 @@ class JoyPad:
     a: bool
 
 
-def initialize_game_boy(save_path: str, boot_rom_path: Optional[str]=None):
+def initialize_game_boy(base_path: Path):
     """Initialize the Game Boy library.
 
     Args:
-        save_path: Path to store save files.
-        boot_rom_path: Path to Game Boy Color boot ROM. Boot up sequence is skipped if not provided.
+        base_path: Directory containing the save and boot ROM paths.
     """
-    save_path_buffer = ctypes.create_string_buffer(str.encode(save_path))
+    save_path = base_path / "saves"
+    boot_rom_dir = base_path / "boot"
+    boot_rom_path = boot_rom_dir / "cgb_boot.bin"
+    save_path.mkdir(parents=True, exist_ok=True)
+    boot_rom_dir.mkdir(parents=True, exist_ok=True)
 
-    if boot_rom_path:
-        boot_rom_path_buffer = ctypes.create_string_buffer(str.encode(boot_rom_path))
-    else:
-        boot_rom_path_buffer = ctypes.create_string_buffer(b"")
+    save_path_buffer = ctypes.create_string_buffer(str.encode(str(save_path.absolute())))
+    boot_rom_path_buffer = ctypes.create_string_buffer(str.encode(str(boot_rom_path.absolute())))
 
     GAME_BOY.Initialize(FRAME_BUFFER, save_path_buffer, boot_rom_path_buffer)
 
-def insert_cartridge(path: str | bytes):
+def insert_cartridge(path: str | bytes | Path):
     """Load specified Game Boy ROM file.
 
     Args:
@@ -60,8 +62,10 @@ def insert_cartridge(path: str | bytes):
     """
     if type(path) == str:
         path_buffer = ctypes.create_string_buffer(str.encode(path))
-    else:
+    elif type(path) == bytes:
         path_buffer = ctypes.create_string_buffer(path)
+    elif type(path) == Path:
+        path_buffer = ctypes.create_string_buffer(str.encode(str(path.absolute())))
 
     GAME_BOY.InsertCartridge(path_buffer)
 
@@ -96,6 +100,22 @@ def get_audio_sample() -> Tuple[float, float]:
     GAME_BOY.GetAudioSample(ctypes.byref(left), ctypes.byref(right))
     return (left.value, right.value)
 
+def set_frame_ready_callback(callback: ctypes.CFUNCTYPE(None)):
+    """Set the callback function used to render the frame buffer whenever it's full.
+
+    Args:
+        callback: Callback function for rendering.
+    """
+    GAME_BOY.SetFrameReadyCallback(callback)
+
 def power_off():
     """Turn off Game Boy. If the current game supports battery-backed saves, create a save file."""
     GAME_BOY.PowerOff()
+
+def get_frame_buffer() -> bytes:
+    """Get a bytes representation of the frame buffer.
+
+    Returns:
+        Frame buffer array.
+    """
+    return bytes(FRAME_BUFFER)

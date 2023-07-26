@@ -8,7 +8,6 @@
 #include <array>
 #include <functional>
 #include <sstream>
-#include <string>
 
 GameBoy::GameBoy() :
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
@@ -26,7 +25,7 @@ void GameBoy::Initialize(uint8_t* frameBuffer,
 {
     frameBuffer_ = frameBuffer;
     saveDirectory_ = savePath;
-    bootRomDirectory_ = bootRomPath;
+    bootRomPath_ = bootRomPath;
     ppu_.SetFrameBuffer(frameBuffer);
 }
 
@@ -60,7 +59,7 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
 
     if (!saveDirectory_.empty())
     {
-        savePath = saveDirectory_.string() + title.str() + ".sav";
+        savePath = saveDirectory_ / (title.str() + ".sav");
     }
 
     uint16_t romBanks = 2 << bank0[0x0148];
@@ -114,8 +113,7 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
 void GameBoy::PowerOn()
 {
     cgbMode_ = true;
-    std::filesystem::path bootRomPath = bootRomDirectory_.string() + "cgb_boot.bin";
-    std::ifstream bootROM(bootRomPath, std::ios::binary);
+    std::ifstream bootROM(bootRomPath_, std::ios::binary);
 
     if (bootROM.fail())
     {

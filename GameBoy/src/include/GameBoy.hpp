@@ -237,7 +237,7 @@ private:
 
     // Paths
     std::filesystem::path saveDirectory_;
-    std::filesystem::path bootRomDirectory_;
+    std::filesystem::path bootRomPath_;
 
     // I/O Registers
     std::array<uint8_t, 0x78> ioReg_;

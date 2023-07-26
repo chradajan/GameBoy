@@ -28,6 +28,7 @@ def initialize_sdl_audio() -> int:
     Returns:
         ID of opened audio device.
     """
+    sdl2.SDL_Init(sdl2.SDL_INIT_AUDIO)
     audio_spec = sdl2.SDL_AudioSpec(0, 0, 0, 0)
     audio_spec.freq = SAMPLE_RATE
     audio_spec.format = sdl2.AUDIO_F32SYS
@@ -65,4 +66,3 @@ def destroy_audio_device(audio_device):
     """
     sdl2.SDL_UnlockAudioDevice(audio_device)
     sdl2.SDL_CloseAudioDevice(audio_device)
-

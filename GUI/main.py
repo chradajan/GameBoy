@@ -1,58 +1,39 @@
 import game_boy.game_boy as game_boy
 import sdl.controller as controller
 import sdl.sdl_audio as sdl_audio
-import sdl.sdl_video as sdl_video
+from qt.main_window import MainWindow
+
 import ctypes
-import sdl2
 import sys
+from pathlib import Path
+from PyQt5 import QtWidgets
 
-SAVE_PATH = "./saves/"
-BOOT_ROM_PATH = "./boot/"
+MAIN_WINDOW: MainWindow
 
-def main(rom_path: str):
-    sdl2.SDL_Init(sdl2.SDL_INIT_VIDEO | sdl2.SDL_INIT_AUDIO)
-    window, renderer = sdl_video.initialize_sdl_video()
-    audio_device = sdl_audio.initialize_sdl_audio()
-    game_boy.initialize_game_boy(SAVE_PATH, BOOT_ROM_PATH)
+@ctypes.CFUNCTYPE(None)
+def refresh_screen_callback():
+    MAIN_WINDOW.refresh_screen()
 
-    if rom_path:
-        game_boy.insert_cartridge(rom_path)
+def main() -> int:
+    global MAIN_WINDOW
+    game_boy.initialize_game_boy(Path(__file__).resolve().parents[1])
+
+    if len(sys.argv) > 1:
+        game_boy.insert_cartridge(sys.argv[1])
 
     game_boy.power_on()
 
-    running = True
-    event = sdl2.SDL_Event()
-    sdl_audio.unlock_audio(audio_device)
+    audio_device_id = sdl_audio.initialize_sdl_audio()
 
-    while running:
-        while sdl2.SDL_PollEvent(ctypes.byref(event)) != 0:
-            if event.type == sdl2.SDL_QUIT:
-                running = False
-                break
-            elif event.type == sdl2.SDL_DROPFILE:
-                sdl_audio.lock_audio(audio_device)
-                game_boy.insert_cartridge(event.drop.file)
-                game_boy.power_on()
-                sdl_audio.unlock_audio(audio_device)
+    app = QtWidgets.QApplication([])
+    MAIN_WINDOW = MainWindow(audio_device_id)
+    game_boy.set_frame_ready_callback(refresh_screen_callback)
 
-        joypad = controller.get_joypad()
-        game_boy.set_joypad_state(joypad)
+    sdl_audio.unlock_audio(audio_device_id)
+    val = app.exec_()
+    sdl_audio.destroy_audio_device(audio_device_id)
 
-        if game_boy.frame_ready():
-            sdl_video.update_screen(renderer)
-
-        sdl2.SDL_Delay(1)
-
-    sdl_audio.destroy_audio_device(audio_device)
-    sdl_video.destroy_window_and_renderer(window, renderer)
-    game_boy.power_off()
-
-    return 0
+    return val
 
 if __name__ == '__main__':
-    rom_path = ""
-
-    if len(sys.argv) > 1:
-        rom_path = sys.argv[1]
-
-    sys.exit(main(rom_path))
+    sys.exit(main())

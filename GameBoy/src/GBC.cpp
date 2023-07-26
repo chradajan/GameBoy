@@ -1,10 +1,10 @@
 #include <GBC.hpp>
 #include <GameBoy.hpp>
-#include <filesystem>
-#include <iostream>
 #include <memory>
 
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
+void (*frameUpdateCallback)() = nullptr;
+
 constexpr int SAMPLE_RATE = 44100;
 constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 constexpr int CPU_CLOCK_FREQUENCY = 1048576;
@@ -14,14 +14,6 @@ void Initialize(uint8_t* frameBuffer,
                 char* const savePath,
                 char* const bootRomPath)
 {
-    std::filesystem::path savePathFS = savePath;
-    std::filesystem::path bootRomPathFS = bootRomPath;
-
-    if (!std::filesystem::is_directory(savePathFS))
-    {
-        std::filesystem::create_directory(savePathFS);
-    }
-
     gb->Initialize(frameBuffer, savePath, bootRomPath);
 }
 
@@ -60,11 +52,21 @@ void GetAudioSample(float* left, float* right)
     {
         gb->Clock();
         audioTime += CPU_CLOCK_PERIOD;
+
+        if (frameUpdateCallback && gb->FrameReady())
+        {
+            frameUpdateCallback();
+        }
     }
 
     audioTime -= SAMPLE_PERIOD;
 
     gb->GetAudioSample(left, right);
+}
+
+void SetFrameReadyCallback(void(*callback)())
+{
+    frameUpdateCallback = callback;
 }
 
 void SetInputs(bool const down,
