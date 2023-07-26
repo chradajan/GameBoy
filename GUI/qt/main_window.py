@@ -1,7 +1,7 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
 import time
-from PyQt5 import QtGui, QtWidgets
+from PyQt6 import QtGui, QtWidgets
 
 WIDTH = 160
 HEIGHT = 144
@@ -28,19 +28,19 @@ class MainWindow(QtWidgets.QMainWindow):
         debug = self.menuBar().addMenu("Debug")
 
         # File menu
-        file_loadrom_action = QtWidgets.QAction("Load ROM...", self)
+        file_loadrom_action = QtGui.QAction("Load ROM...", self)
         file_loadrom_action.triggered.connect(self.load_rom_trigger)
         file_loadrom = file.addAction(file_loadrom_action)
 
-        file_exit_action = QtWidgets.QAction("Exit", self)
-        file_exit_action.triggered.connect(QtWidgets.qApp.quit)
+        file_exit_action = QtGui.QAction("Exit", self)
+        file_exit_action.triggered.connect(QtWidgets.QApplication.quit)
         file_exit = file.addAction(file_exit_action)
 
         # Options menu
         options_windowsize = options.addMenu("Window size")
 
         for size in ["2x2", "3x3", "4x4", "5x5", "6x6"]:
-            action = QtWidgets.QAction(size, self)
+            action = QtGui.QAction(size, self)
             action.triggered.connect(self.window_size_trigger)
             options_windowsize.addAction(action)
 
@@ -66,11 +66,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def refresh_screen(self):
-        now = time.perf_counter()
-
-        if now - self.move_timer < 0.05:
-            return
-
         image = QtGui.QImage(game_boy.get_frame_buffer(),
                              WIDTH,
                              HEIGHT,
@@ -121,6 +116,3 @@ class MainWindow(QtWidgets.QMainWindow):
     #                                      #
     ########################################
 
-    def moveEvent(self, event: QtGui.QMoveEvent):
-        self.move_timer = time.perf_counter()
-        super().moveEvent(event)

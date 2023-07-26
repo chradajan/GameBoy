@@ -6,13 +6,21 @@ from qt.main_window import MainWindow
 import ctypes
 import sys
 from pathlib import Path
-from PyQt5 import QtWidgets
+from PyQt6 import QtCore, QtWidgets
 
 MAIN_WINDOW: MainWindow
 
+class Refresher(QtCore.QObject):
+    trigger = QtCore.pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.trigger.connect(MAIN_WINDOW.refresh_screen)
+        self.trigger.emit()
+
 @ctypes.CFUNCTYPE(None)
 def refresh_screen_callback():
-    MAIN_WINDOW.refresh_screen()
+    Refresher()
 
 def main() -> int:
     global MAIN_WINDOW
@@ -30,7 +38,7 @@ def main() -> int:
     game_boy.set_frame_ready_callback(refresh_screen_callback)
 
     sdl_audio.unlock_audio(audio_device_id)
-    val = app.exec_()
+    val = app.exec()
     sdl_audio.destroy_audio_device(audio_device_id)
 
     return val
