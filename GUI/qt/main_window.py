@@ -14,18 +14,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.window_scale = 4
         self.game_speed = 1.0
         self.audio_device_id = audio_device_id
+        self.keys_pressed = set()
 
         self.last_checked_window_size: QtGui.QAction = None
         self.last_checked_game_speed: QtGui.QAction = None
 
         self.frame_counter = 0
-        self.timer = QtCore.QTimer(self)
-        self.timer.timeout.connect(self._update_fps_counter)
-        self.timer.start(1000)
+        self.fps_timer = QtCore.QTimer(self)
+        self.fps_timer.timeout.connect(self._update_fps_counter)
+        self.fps_timer.start(1000)
 
         self._init_ui()
         self.show()
-
 
     def _init_ui(self):
         # Set window settings
@@ -83,7 +83,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Update window size
         self._resize_window()
 
-
     def _resize_window(self):
         width = WIDTH * self.window_scale
         lcd_height = HEIGHT * self.window_scale
@@ -91,14 +90,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setFixedSize(width, window_height)
         self.lcd.resize(width, lcd_height)
 
-
     def _update_fps_counter(self):
         self.setWindowTitle(f"Game Boy ({self.frame_counter} fps)")
         self.frame_counter = 0
 
-
     def refresh_screen(self):
         self.frame_counter += 1
+        self._update_joypad()
 
         image = QtGui.QImage(game_boy.get_frame_buffer(),
                              WIDTH,
@@ -106,6 +104,20 @@ class MainWindow(QtWidgets.QMainWindow):
                              QtGui.QImage.Format.Format_RGB888)
 
         self.lcd.setPixmap(QtGui.QPixmap.fromImage(image).scaled(self.lcd.width(), self.lcd.height()))
+
+    def _update_joypad(self):
+        joypad = game_boy.JoyPad(
+            QtCore.Qt.Key.Key_S in self.keys_pressed,
+            QtCore.Qt.Key.Key_W in self.keys_pressed,
+            QtCore.Qt.Key.Key_A in self.keys_pressed,
+            QtCore.Qt.Key.Key_D in self.keys_pressed,
+            QtCore.Qt.Key.Key_Return in self.keys_pressed,
+            QtCore.Qt.Key.Key_Shift in self.keys_pressed,
+            QtCore.Qt.Key.Key_K in self.keys_pressed,
+            QtCore.Qt.Key.Key_L in self.keys_pressed,
+        )
+        game_boy.set_joypad_state(joypad)
+
 
     #######################################################################
     #    __  __                                 _   _                     #
@@ -150,4 +162,17 @@ class MainWindow(QtWidgets.QMainWindow):
     #    |______\_/ \___|_| |_|\__|___/    #
     #                                      #
     ########################################
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent | None):
+        if event is None:
+            return
+
+        self.keys_pressed.add(event.key())
+        super().keyPressEvent(event)
+
+    def keyReleaseEvent(self, event: QtGui.QKeyEvent | None):
+        if event is None:
+            return
+        self.keys_pressed.discard(event.key())
+        super().keyReleaseEvent(event)
 

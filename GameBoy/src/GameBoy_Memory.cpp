@@ -181,8 +181,7 @@ void GameBoy::WriteIoReg(uint16_t addr, uint8_t data)
     switch (ioAddr)
     {
         case IO::JOYP:  // Joypad
-            ioReg_[IO::JOYP] = (0xC0 | (data & 0x30));
-            UpdateInputs();
+            UpdateJOYP(data);
             break;
         case IO::SB:  // Serial data
             ioReg_[IO::SB] = data;

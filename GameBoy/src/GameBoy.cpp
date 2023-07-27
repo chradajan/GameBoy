@@ -187,21 +187,12 @@ void GameBoy::Clock()
     RunMCycle();
 }
 
-void GameBoy::SetInputs(bool const down,
-                        bool const up,
-                        bool const left,
-                        bool const right,
-                        bool const start,
-                        bool const select,
-                        bool const b,
-                        bool const a)
+void GameBoy::UpdateJOYP(uint8_t data)
 {
-    buttons_ = {down, up, left, right, start, select, b, a};
-
-    uint_fast8_t prevState = ioReg_[IO::JOYP] & 0x0F;
-    bool const actionSelect = ((ioReg_[IO::JOYP] & 0x20) == 0);
-    bool const directionSelect = ((ioReg_[IO::JOYP] & 0x10) == 0);
-    ioReg_[IO::JOYP] |= 0x0F;
+    uint_fast8_t const prevState = ioReg_[IO::JOYP] & 0x0F;
+    ioReg_[IO::JOYP] = data | 0xCF;
+    bool const actionSelect = (ioReg_[IO::JOYP] & 0x20) == 0;
+    bool const directionSelect = (ioReg_[IO::JOYP] & 0x10) == 0;
 
     if (actionSelect)
     {
@@ -261,11 +252,6 @@ void GameBoy::SetInputs(bool const down,
     {
         stopped_ = false;
     }
-}
-
-void GameBoy::UpdateInputs()
-{
-    SetInputs(buttons_.down, buttons_.up, buttons_.left, buttons_.right, buttons_.start, buttons_.select, buttons_.b, buttons_.a);
 }
 
 std::optional<std::pair<uint16_t, uint8_t>> GameBoy::CheckPendingInterrupts()

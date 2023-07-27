@@ -1,5 +1,4 @@
 import game_boy.game_boy as game_boy
-import sdl.controller as controller
 import sdl.sdl_audio as sdl_audio
 from qt.main_window import MainWindow
 

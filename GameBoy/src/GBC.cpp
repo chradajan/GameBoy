@@ -79,7 +79,7 @@ void SetInputs(bool const down,
                bool const b,
                bool const a)
 {
-    gb->SetInputs(down, up, left, right, start, select, b, a);
+    gb->SetButtons(down, up, left, right, start, select, b, a);
 }
 
 void SetClockMultiplier(float const multiplier)

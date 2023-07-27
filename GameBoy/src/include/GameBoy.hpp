@@ -133,17 +133,19 @@ public:
 
     void GetAudioSample(float* left, float* right) { apu_.GetAudioSample(left, right); }
 
-    /// @brief Update JOYP based on which buttons are pressed and which buttons are selected to read. If stop mode is active and a
-    ///        button is pressed, exit stop mode.
-    /// @param down True if down is currently pressed.
-    /// @param up True if up is currently pressed.
-    /// @param left True if left is currently pressed.
-    /// @param right True if right is currently pressed.
-    /// @param start True if start is currently pressed.
-    /// @param select True if select is currently pressed.
-    /// @param b True if b is currently pressed.
-    /// @param a True if a is currently pressed.
-    void SetInputs(bool down, bool up, bool left, bool right, bool start, bool select, bool b, bool a);
+    /// @brief Update which buttons are currently being pressed.
+    /// @param[in] down True if down is currently pressed.
+    /// @param[in] up True if up is currently pressed.
+    /// @param[in] left True if left is currently pressed.
+    /// @param[in] right True if right is currently pressed.
+    /// @param[in] start True if start is currently pressed.
+    /// @param[in] select True if select is currently pressed.
+    /// @param[in] b True if b is currently pressed.
+    /// @param[in] a True if a is currently pressed.
+    void SetButtons(bool down, bool up, bool left, bool right, bool start, bool select, bool b, bool a)
+    {
+        buttons_ = {down, up, left, right, start, select, b, a};
+    }
 
 private:
     void RunMCycle();
@@ -161,8 +163,9 @@ private:
     /// @brief Run one cycle of a serial transfer.
     void ClockSerialTransfer();
 
-    /// @brief Update JOYP with most recently pressed buttons.
-    void UpdateInputs();
+    /// @brief Update JOYP with most recently pressed buttons when written.
+    /// @param[in] data Data being written to JOYP.
+    void UpdateJOYP(uint8_t data);
 
     /// @brief Check for any pending interrupts (IF & IE).
     /// @return If an interrupt is pending, return the address to jump to and the total number of pending interrupts.
