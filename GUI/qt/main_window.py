@@ -1,5 +1,6 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
+from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 WIDTH = 160
@@ -9,11 +10,12 @@ class MainWindow(QtWidgets.QMainWindow):
     window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
     game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
 
-    def __init__(self, audio_device_id: int):
+    def __init__(self, audio_device_id: int, file_dialog_path: Path):
         super().__init__()
         self.window_scale = 4
         self.game_speed = 1.0
         self.audio_device_id = audio_device_id
+        self.file_dialog_path = file_dialog_path
         self.keys_pressed = set()
 
         self.last_checked_window_size: QtGui.QAction = None
@@ -130,7 +132,18 @@ class MainWindow(QtWidgets.QMainWindow):
     #######################################################################
 
     def load_rom_trigger(self):
-        pass
+        file_dialog = QtWidgets.QFileDialog(self)
+        file_dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        rom_path, _ = file_dialog.getOpenFileName(self,
+                                                  "Load ROM...",
+                                                  str(self.file_dialog_path.absolute()),
+                                                  "Game Boy files (*.gb *.gbc)")
+
+        if rom_path:
+            sdl_audio.lock_audio(self.audio_device_id)
+            game_boy.insert_cartridge(rom_path)
+            game_boy.power_on()
+            sdl_audio.unlock_audio(self.audio_device_id)
 
     def _window_size_trigger(self):
         self.last_checked_window_size.setChecked(False)
