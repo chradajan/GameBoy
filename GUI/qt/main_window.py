@@ -1,17 +1,27 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
-import time
-from PyQt6 import QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 WIDTH = 160
 HEIGHT = 144
 
 class MainWindow(QtWidgets.QMainWindow):
+    window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
+    game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
+
     def __init__(self, audio_device_id: int):
         super().__init__()
         self.window_scale = 4
+        self.game_speed = 1.0
         self.audio_device_id = audio_device_id
-        self.move_timer = time.perf_counter()
+
+        self.last_checked_window_size: QtGui.QAction = None
+        self.last_checked_game_speed: QtGui.QAction = None
+
+        self.frame_counter = 0
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self._update_fps_counter)
+        self.timer.start(1000)
 
         self._init_ui()
         self.show()
@@ -39,12 +49,29 @@ class MainWindow(QtWidgets.QMainWindow):
         # Options menu
         options_windowsize = options.addMenu("Window size")
 
-        for size in ["2x2", "3x3", "4x4", "5x5", "6x6"]:
-            action = QtGui.QAction(size, self)
-            action.triggered.connect(self.window_size_trigger)
+        for size_str, size_int in self.window_sizes.items():
+            action = QtGui.QAction(size_str, self)
+            action.setCheckable(True)
+
+            if size_int == self.window_scale:
+                action.setChecked(True)
+                self.last_checked_window_size = action
+
+            action.triggered.connect(self._window_size_trigger)
             options_windowsize.addAction(action)
 
-        options_game_speed = options.addMenu("Game speed")
+        options_gamespeed = options.addMenu("Game speed")
+
+        for speed_str, speed_float in self.game_speeds.items():
+            action = QtGui.QAction(speed_str, self)
+            action.setCheckable(True)
+
+            if speed_float == self.game_speed:
+                action.setChecked(True)
+                self.last_checked_game_speed = action
+            
+            action.triggered.connect(self._game_speed_trigger)
+            options_gamespeed.addAction(action)
 
         # Debug menu
         debug_sound_channels = debug.addMenu("Sound channels")
@@ -65,7 +92,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.lcd.resize(width, lcd_height)
 
 
+    def _update_fps_counter(self):
+        self.setWindowTitle(f"Game Boy ({self.frame_counter} fps)")
+        self.frame_counter = 0
+
+
     def refresh_screen(self):
+        self.frame_counter += 1
+
         image = QtGui.QImage(game_boy.get_frame_buffer(),
                              WIDTH,
                              HEIGHT,
@@ -86,25 +120,26 @@ class MainWindow(QtWidgets.QMainWindow):
     def load_rom_trigger(self):
         pass
 
-    def window_size_trigger(self):
-        sender_label = self.sender().text()
+    def _window_size_trigger(self):
+        self.last_checked_window_size.setChecked(False)
+        self.last_checked_window_size = self.sender()
+        self.last_checked_window_size.setChecked(True)
 
-        if sender_label == "2x2":
-            self.window_scale = 2
-        elif sender_label == "3x3":
-            self.window_scale = 3
-        elif sender_label == "4x4":
-            self.window_scale = 4
-        elif sender_label == "5x5":
-            self.window_scale = 5
-        elif sender_label == "6x6":
-            self.window_scale = 6
-        else:
-            return
+        self.window_scale = self.window_sizes[self.sender().text()]
 
         sdl_audio.lock_audio(self.audio_device_id)
         self._resize_window()
         sdl_audio.unlock_audio(self.audio_device_id)
+
+    def _game_speed_trigger(self):
+        self.last_checked_game_speed.setChecked(False)
+        self.last_checked_game_speed = self.sender()
+        self.last_checked_game_speed.setChecked(True)
+
+        sdl_audio.lock_audio(self.audio_device_id)
+        game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])
+        sdl_audio.unlock_audio(self.audio_device_id)
+
 
     ########################################
     #     ______                           #

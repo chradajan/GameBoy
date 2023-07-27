@@ -8,7 +8,8 @@ void (*frameUpdateCallback)() = nullptr;
 constexpr int SAMPLE_RATE = 44100;
 constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 constexpr int CPU_CLOCK_FREQUENCY = 1048576;
-constexpr float CPU_CLOCK_PERIOD = 1.0 / CPU_CLOCK_FREQUENCY;
+int EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY;
+float CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
 
 void Initialize(uint8_t* frameBuffer,
                 char* const savePath,
@@ -79,4 +80,10 @@ void SetInputs(bool const down,
                bool const a)
 {
     gb->SetInputs(down, up, left, right, start, select, b, a);
+}
+
+void SetClockMultiplier(float const multiplier)
+{
+    EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY * multiplier;
+    CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
 }

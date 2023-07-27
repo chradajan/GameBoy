@@ -119,3 +119,11 @@ def get_frame_buffer() -> bytes:
         Frame buffer array.
     """
     return bytes(FRAME_BUFFER)
+
+def change_emulation_speed(multiplier: float):
+    """Alter the emulation speed by changing the Game Boy frequency.
+
+    Args:
+        multiplier: Multiplier to alter clock speed by.
+    """
+    GAME_BOY.SetClockMultiplier(ctypes.c_float(multiplier))

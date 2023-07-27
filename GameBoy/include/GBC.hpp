@@ -50,4 +50,8 @@ void SetFrameReadyCallback(void(*callback)());
 /// @param[in] b True if the b button is currently pressed.
 /// @param[in] a True if the a button is currently pressed.
 void SetInputs(bool down, bool up, bool left, bool right, bool start, bool select, bool b, bool a);
+
+/// @brief Change how fast the emulated CPU runs to alter emulation speed.
+/// @param multiplier Clock speed multiplier.
+void SetClockMultiplier(float multiplier);
 }
