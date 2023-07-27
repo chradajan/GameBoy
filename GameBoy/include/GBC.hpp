@@ -22,19 +22,15 @@ void PowerOn();
 /// @brief Unload the current game ROM and create a save file if its battery-backed.
 void PowerOff();
 
-/// @brief Run the Game Boy for exactly one machine cycle (1 tick at 1.048576 MHz).
-void Clock();
-
 /// @brief Check if a frame is ready to be rendered to the screen.
 /// @return True if a full frame is loaded up in the frame buffer.
 bool FrameReady();
 
-/// @brief Run the Game Boy for enough cycles to generate an audio sample based on the CPU frequency and specified sample rate. If a
-///        frame ready callback has been specified, it will be called anytime a full frame has been written to the frame buffer
-///        while clocking the Game Boy.
-/// @param[out] left 32-bit floating point PCM sample for left channel
-/// @param[out] right 32-bit floating point PCM sample for right channel
-void GetAudioSample(float* left, float* right);
+/// @brief Run the Game Boy and collect the specified number of audio samples. If a frame is ready to be displayed while collecting
+///        samples, call the frame ready callback.
+/// @param buffer Buffer to write 2-channel 32-bit float PCM samples to.
+/// @param numSamples Number of samples to collect.
+void CollectAudioSamples(float* buffer, size_t numSamples);
 
 /// @brief Specify a callback function used for rendering the frame buffer.
 /// @param[in] callback Function to call anytime the frame buffer is ready to be rendered.

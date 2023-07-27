@@ -177,14 +177,14 @@ void GameBoy::PowerOn()
     ppu_.PowerOn(!runningBootRom_);
 }
 
-void GameBoy::Clock()
+void GameBoy::Clock(size_t const numCycles)
 {
     if (!cartridge_ && !runningBootRom_)
     {
         return;
     }
 
-    RunMCycle();
+    RunMCycles(numCycles);
 }
 
 void GameBoy::UpdateJOYP(uint8_t data)

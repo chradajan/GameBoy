@@ -16,11 +16,7 @@ def audio_callback(userdata, stream, len):
     """
     buffer = ctypes.cast(stream, ctypes.POINTER(ctypes.c_float))
     num_samples = (len // ctypes.sizeof(ctypes.c_float))
-
-    for i in range(0, num_samples, 2):
-        left, right = game_boy.get_audio_sample()
-        buffer[i] = left * 0.15
-        buffer[i+1] = right * 0.15
+    game_boy.collect_audio_samples(buffer, num_samples)
 
 def initialize_sdl_audio() -> int:
     """Set up SDL audio for 2 channels of 32-bit floating point PCM samples at the desired sample rate.

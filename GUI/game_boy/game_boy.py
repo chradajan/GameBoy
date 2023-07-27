@@ -19,9 +19,6 @@ if sys.platform == "darwin":
 elif sys.platform == "win32":
     GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
 
-GAME_BOY.GetAudioSample.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.POINTER(ctypes.c_float)]
-
-
 @dataclass
 class JoyPad:
     """Current joypad state."""
@@ -97,6 +94,15 @@ def get_audio_sample() -> Tuple[float, float]:
     right = ctypes.c_float(0.0)
     GAME_BOY.GetAudioSample(ctypes.byref(left), ctypes.byref(right))
     return (left.value, right.value)
+
+def collect_audio_samples(buffer: ctypes.POINTER(ctypes.c_float), len: int):
+    """Run the Game Boy and fill the buffer with audio samples.
+
+    Args:
+        buffer: Pointer to audio buffer to be filled.
+        len: Number of samples to collect.
+    """
+    GAME_BOY.CollectAudioSamples(buffer, ctypes.c_size_t(len))
 
 def set_frame_ready_callback(callback: ctypes.CFUNCTYPE(None)):
     """Set the callback function used to render the frame buffer whenever it's full.

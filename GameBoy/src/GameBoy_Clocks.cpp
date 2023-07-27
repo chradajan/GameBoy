@@ -1,61 +1,64 @@
 #include <GameBoy.hpp>
 #include <iostream>
 
-void GameBoy::RunMCycle()
+void GameBoy::RunMCycles(size_t const numCycles)
 {
-    for (uint_fast8_t i = 0; i < 4; ++i)
+    for (size_t i = 0; i < numCycles; ++i)
     {
-        switch (i)
+        for (uint_fast8_t i = 0; i < 4; ++i)
         {
-            case 0:
+            switch (i)
             {
-                if (cpu_.InBetweenInstructions() && (gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_)))
+                case 0:
                 {
-                    transferActive_ = true;
-                    ClockVramDma();
-                }
+                    if (cpu_.InBetweenInstructions() && (gdmaInProgress_ || (hdmaInProgress_ && vramDmaBytesRemaining_)))
+                    {
+                        transferActive_ = true;
+                        ClockVramDma();
+                    }
 
-                ClockVariableSpeedComponents(!transferActive_);
-
-                apu_.Clock();
-                ppu_.Clock();
-                break;
-            }
-            case 1:
-                ppu_.Clock();
-                break;
-            case 2:
-                if (DoubleSpeedMode())
-                {
                     ClockVariableSpeedComponents(!transferActive_);
-                }
 
-                ppu_.Clock();
-                break;
-            case 3:
-            {
-                ppu_.Clock();
-                break;
+                    apu_.Clock();
+                    ppu_.Clock();
+                    break;
+                }
+                case 1:
+                    ppu_.Clock();
+                    break;
+                case 2:
+                    if (DoubleSpeedMode())
+                    {
+                        ClockVariableSpeedComponents(!transferActive_);
+                    }
+
+                    ppu_.Clock();
+                    break;
+                case 3:
+                {
+                    ppu_.Clock();
+                    break;
+                }
             }
         }
-    }
 
-    bool isMode0 = (ppu_.GetMode() == 0);
+        bool isMode0 = (ppu_.GetMode() == 0);
 
-    if (hdmaInProgress_ && (!wasMode0_ && isMode0))
-    {
-        vramDmaBytesRemaining_ = 0x10;
-    }
-
-    wasMode0_ = isMode0;
-
-    if (speedSwitchCountdown_ > 0)
-    {
-        --speedSwitchCountdown_;
-
-        if (speedSwitchCountdown_ == 0)
+        if (hdmaInProgress_ && (!wasMode0_ && isMode0))
         {
-            cpu_.ExitHalt();
+            vramDmaBytesRemaining_ = 0x10;
+        }
+
+        wasMode0_ = isMode0;
+
+        if (speedSwitchCountdown_ > 0)
+        {
+            --speedSwitchCountdown_;
+
+            if (speedSwitchCountdown_ == 0)
+            {
+                cpu_.ExitHalt();
+            }
         }
     }
 }

@@ -35,34 +35,31 @@ void PowerOff()
     gb.reset();
 }
 
-void Clock()
-{
-    gb->Clock();
-}
-
 bool FrameReady()
 {
     return gb->FrameReady();
 }
 
-void GetAudioSample(float* left, float* right)
+void CollectAudioSamples(float* buffer, size_t numSamples)
 {
     static float audioTime = 0.0;
 
-    while (audioTime < SAMPLE_PERIOD)
+    for (size_t i = 0; i < numSamples; i += 2)
     {
-        gb->Clock();
-        audioTime += CPU_CLOCK_PERIOD;
+        size_t mCycles = ((SAMPLE_PERIOD - audioTime) / CPU_CLOCK_PERIOD) + 1;
+        gb->Clock(mCycles);
+        audioTime = (mCycles * CPU_CLOCK_PERIOD) - SAMPLE_PERIOD;
 
         if (frameUpdateCallback && gb->FrameReady())
         {
             frameUpdateCallback();
         }
+
+        float left, right;
+        gb->GetAudioSample(&left, &right);
+        buffer[i] = left * 0.15;
+        buffer[i + 1] = right * 0.15;
     }
-
-    audioTime -= SAMPLE_PERIOD;
-
-    gb->GetAudioSample(left, right);
 }
 
 void SetFrameReadyCallback(void(*callback)())
