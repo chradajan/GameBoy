@@ -97,13 +97,13 @@ uint8_t Channel4::Read(uint8_t ioAddr) const
     switch (ioAddr)
     {
         case 0x20:  // NR41
-            return 0xFF;
+            return NR41_ | 0xC0;
         case 0x21:  // NR42
             return NR42_;
         case 0x22:  // NR43
             return NR43_;
         case 0x23:  // NR44
-            return (NR44_ & 0x40) | 0xBF;
+            return NR44_ | 0x3F;
         default:
             break;
     }

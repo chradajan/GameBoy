@@ -11,6 +11,7 @@
 #include <sstream>
 
 GameBoy::GameBoy() :
+    cgbMode_(false),
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
          std::bind(&GameBoy::Write, this, std::placeholders::_1, std::placeholders::_2),
          std::bind(&GameBoy::AcknowledgeInterrupt, this),

@@ -176,6 +176,7 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
             break;
         case 0x24:  // NR50
         {
+            NR50_ = data;
             uint_fast8_t left = (data & 0x70) >> 4;
             uint_fast8_t right = data & 0x07;
             leftVolume_ = (0.1286 * left) + 0.1;
