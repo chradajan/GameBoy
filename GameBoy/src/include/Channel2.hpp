@@ -27,15 +27,6 @@ private:
     void SetLengthCounter() { lengthCounter_ = NR21_ & 0x3F; }
     bool SoundLengthTimerEnabled() const { return NR24_ & 0x40; }
 
-    // Duty cycle patterns
-    static constexpr int8_t DUTY_CYCLE[4][8] =
-    {
-        {1, 1, 1, 1, 1, 1, 1, -1},
-        {1, 1, 1, 1, 1, 1, -1, -1},
-        {1, 1, 1, 1, -1, -1, -1, -1},
-        {1, 1, -1, -1, -1, -1, -1, -1}
-    };
-
     // Registers
     uint8_t NR21_;
     uint8_t NR22_;

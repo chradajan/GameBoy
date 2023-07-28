@@ -33,15 +33,6 @@ private:
 
     void SetPeriod(uint16_t period);
 
-    // Duty cycle patterns
-    static constexpr int8_t DUTY_CYCLE[4][8] =
-    {
-        {1, 1, 1, 1, 1, 1, 1, -1},
-        {1, 1, 1, 1, 1, 1, -1, -1},
-        {1, 1, 1, 1, -1, -1, -1, -1},
-        {1, 1, -1, -1, -1, -1, -1, -1}
-    };
-
     // Registers
     uint8_t NR10_;
     uint8_t NR11_;

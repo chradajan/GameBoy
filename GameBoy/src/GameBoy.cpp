@@ -7,8 +7,12 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
-#include <functional>
-#include <sstream>
+#include <filesystem>
+#include <fstream>
+#include <memory>
+#include <optional>
+#include <string>
+#include <utility>
 
 GameBoy::GameBoy() :
     cgbMode_(false),
@@ -182,6 +186,78 @@ void GameBoy::PowerOn()
     apu_.PowerOn(runningBootRom_);
     cpu_.Reset(runningBootRom_);
     ppu_.PowerOn(!runningBootRom_);
+}
+
+bool GameBoy::IsSerializable() const
+{
+    return (!runningBootRom_ &&
+            !serialTransferInProgress_ &&
+            !oamDmaInProgress_ &&
+            !gdmaInProgress_ &&
+            !hdmaInProgress_ &&
+            (speedSwitchCountdown_ == 0) &&
+            cpu_.IsSerializable() &&
+            ppu_.IsSerializable());
+}
+
+void GameBoy::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(&buttons_), sizeof(buttons_));
+
+    for (auto& bank : WRAM_)
+    {
+        out.write(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    out.write(reinterpret_cast<char*>(HRAM_.data()), HRAM_.size());
+    out.write(reinterpret_cast<char*>(ioReg_.data()), ioReg_.size());
+
+    out.write(reinterpret_cast<char*>(&IE_), sizeof(IE_));
+
+    out.write(reinterpret_cast<char*>(&timerCounter_), sizeof(timerCounter_));
+    out.write(reinterpret_cast<char*>(&timerControl_), sizeof(timerControl_));
+    out.write(reinterpret_cast<char*>(&timerEnabled_), sizeof(timerEnabled_));
+    out.write(reinterpret_cast<char*>(&timerReload_), sizeof(timerReload_));
+
+    out.write(reinterpret_cast<char*>(&wasMode0_), sizeof(wasMode0_));
+
+    out.write(reinterpret_cast<char*>(&lastPendingInterrupt_), sizeof(lastPendingInterrupt_));
+    out.write(reinterpret_cast<char*>(&prevStatState_), sizeof(prevStatState_));
+
+    cartridge_->Serialize(out);
+    apu_.Serialize(out);
+    cpu_.Serialize(out);
+    ppu_.Serialize(out);
+}
+
+void GameBoy::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(&buttons_), sizeof(buttons_));
+
+    for (auto& bank : WRAM_)
+    {
+        in.read(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    in.read(reinterpret_cast<char*>(HRAM_.data()), HRAM_.size());
+    in.read(reinterpret_cast<char*>(ioReg_.data()), ioReg_.size());
+
+    in.read(reinterpret_cast<char*>(&IE_), sizeof(IE_));
+
+    in.read(reinterpret_cast<char*>(&timerCounter_), sizeof(timerCounter_));
+    in.read(reinterpret_cast<char*>(&timerControl_), sizeof(timerControl_));
+    in.read(reinterpret_cast<char*>(&timerEnabled_), sizeof(timerEnabled_));
+    in.read(reinterpret_cast<char*>(&timerReload_), sizeof(timerReload_));
+
+    in.read(reinterpret_cast<char*>(&wasMode0_), sizeof(wasMode0_));
+
+    in.read(reinterpret_cast<char*>(&lastPendingInterrupt_), sizeof(lastPendingInterrupt_));
+    in.read(reinterpret_cast<char*>(&prevStatState_), sizeof(prevStatState_));
+
+    cartridge_->Deserialize(in);
+    apu_.Deserialize(in);
+    cpu_.Deserialize(in);
+    ppu_.Deserialize(in);
 }
 
 void GameBoy::Clock(int const numCycles)

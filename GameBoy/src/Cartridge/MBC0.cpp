@@ -91,3 +91,13 @@ void MBC0::SaveRAM()
         }
     }
 }
+
+void MBC0::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(RAM_.data()), RAM_.size());
+}
+
+void MBC0::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(RAM_.data()), RAM_.size());
+}

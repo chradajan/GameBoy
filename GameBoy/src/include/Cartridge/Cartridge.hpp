@@ -18,6 +18,9 @@ public:
 
     virtual void SaveRAM() = 0;
 
+    virtual void Serialize(std::ofstream& out) = 0;
+    virtual void Deserialize(std::ifstream& in) = 0;
+
 protected:
     bool containsRAM_;
     bool batteryBacked_;

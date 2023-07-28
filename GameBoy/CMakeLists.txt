@@ -19,6 +19,7 @@ set(SOURCES
     src/Channel4.cpp
     src/CPU.cpp
     src/CPU_Instructions.cpp
+    src/CPU_Registers.cpp
     src/GameBoy.cpp
     src/GameBoy_Clocks.cpp
     src/GameBoy_Memory.cpp

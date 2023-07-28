@@ -137,3 +137,31 @@ void MBC5::SaveRAM()
         }
     }
 }
+
+void MBC5::Serialize(std::ofstream& out)
+{
+    for (auto& bank : RAM_)
+    {
+        out.write(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    out.write(reinterpret_cast<char*>(&romBankIndex_), sizeof(romBankIndex_));
+    out.write(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+    out.write(reinterpret_cast<char*>(&romBankLsb_), sizeof(romBankLsb_));
+    out.write(reinterpret_cast<char*>(&romBankMsb_), sizeof(romBankMsb_));
+    out.write(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+}
+
+void MBC5::Deserialize(std::ifstream& in)
+{
+    for (auto& bank : RAM_)
+    {
+        in.read(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    in.read(reinterpret_cast<char*>(&romBankIndex_), sizeof(romBankIndex_));
+    in.read(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+    in.read(reinterpret_cast<char*>(&romBankLsb_), sizeof(romBankLsb_));
+    in.read(reinterpret_cast<char*>(&romBankMsb_), sizeof(romBankMsb_));
+    in.read(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+}

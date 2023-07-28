@@ -258,6 +258,79 @@ bool PPU::VBlank()
     return false;
 }
 
+bool PPU::IsSerializable() const
+{
+    return (!frameReady_ && ((LCDEnabled() && (LY_ > 143)) || (!LCDEnabled() && (disabledY_ > 143))));
+}
+
+void PPU::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(&LCDC_), sizeof(LCDC_));
+    out.write(reinterpret_cast<char*>(&STAT_), sizeof(STAT_));
+    out.write(reinterpret_cast<char*>(&SCY_), sizeof(SCY_));
+    out.write(reinterpret_cast<char*>(&SCX_), sizeof(SCX_));
+    out.write(reinterpret_cast<char*>(&LY_), sizeof(LY_));
+    out.write(reinterpret_cast<char*>(&LYC_), sizeof(LYC_));
+    out.write(reinterpret_cast<char*>(&WY_), sizeof(WY_));
+    out.write(reinterpret_cast<char*>(&WX_), sizeof(WX_));
+
+    out.write(reinterpret_cast<char*>(&BGP_), sizeof(BGP_));
+    out.write(reinterpret_cast<char*>(&OBP0_), sizeof(OBP0_));
+    out.write(reinterpret_cast<char*>(&OBP1_), sizeof(OBP1_));
+    out.write(reinterpret_cast<char*>(&BCPS_), sizeof(BCPS_));
+    out.write(reinterpret_cast<char*>(&OCPS_), sizeof(OCPS_));
+
+    out.write(reinterpret_cast<char*>(BG_CRAM_.data()), BG_CRAM_.size());
+    out.write(reinterpret_cast<char*>(OBJ_CRAM_.data()), OBJ_CRAM_.size());
+
+    out.write(reinterpret_cast<char*>(&OPRI_), sizeof(OPRI_));
+    out.write(reinterpret_cast<char*>(OAM_.data()), OAM_.size());
+
+    out.write(reinterpret_cast<char*>(&VBK_), sizeof(VBK_));
+    out.write(reinterpret_cast<char*>(VRAM_[0].data()), VRAM_[0].size());
+    out.write(reinterpret_cast<char*>(VRAM_[1].data()), VRAM_[1].size());
+
+    out.write(reinterpret_cast<char*>(&dot_), sizeof(dot_));
+    out.write(reinterpret_cast<char*>(&vBlank_), sizeof(vBlank_));
+
+    out.write(reinterpret_cast<char*>(&disabledY_), sizeof(disabledY_));
+    out.write(reinterpret_cast<char*>(&firstEnabledFrame_), sizeof(firstEnabledFrame_));
+}
+
+void PPU::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(&LCDC_), sizeof(LCDC_));
+    in.read(reinterpret_cast<char*>(&STAT_), sizeof(STAT_));
+    in.read(reinterpret_cast<char*>(&SCY_), sizeof(SCY_));
+    in.read(reinterpret_cast<char*>(&SCX_), sizeof(SCX_));
+    in.read(reinterpret_cast<char*>(&LY_), sizeof(LY_));
+    in.read(reinterpret_cast<char*>(&LYC_), sizeof(LYC_));
+    in.read(reinterpret_cast<char*>(&WY_), sizeof(WY_));
+    in.read(reinterpret_cast<char*>(&WX_), sizeof(WX_));
+
+    in.read(reinterpret_cast<char*>(&BGP_), sizeof(BGP_));
+    in.read(reinterpret_cast<char*>(&OBP0_), sizeof(OBP0_));
+    in.read(reinterpret_cast<char*>(&OBP1_), sizeof(OBP1_));
+    in.read(reinterpret_cast<char*>(&BCPS_), sizeof(BCPS_));
+    in.read(reinterpret_cast<char*>(&OCPS_), sizeof(OCPS_));
+
+    in.read(reinterpret_cast<char*>(BG_CRAM_.data()), BG_CRAM_.size());
+    in.read(reinterpret_cast<char*>(OBJ_CRAM_.data()), OBJ_CRAM_.size());
+
+    in.read(reinterpret_cast<char*>(&OPRI_), sizeof(OPRI_));
+    in.read(reinterpret_cast<char*>(OAM_.data()), OAM_.size());
+
+    in.read(reinterpret_cast<char*>(&VBK_), sizeof(VBK_));
+    in.read(reinterpret_cast<char*>(VRAM_[0].data()), VRAM_[0].size());
+    in.read(reinterpret_cast<char*>(VRAM_[1].data()), VRAM_[1].size());
+
+    in.read(reinterpret_cast<char*>(&dot_), sizeof(dot_));
+    in.read(reinterpret_cast<char*>(&vBlank_), sizeof(vBlank_));
+
+    in.read(reinterpret_cast<char*>(&disabledY_), sizeof(disabledY_));
+    in.read(reinterpret_cast<char*>(&firstEnabledFrame_), sizeof(firstEnabledFrame_));
+}
+
 void PPU::OamScan()
 {
     std::vector<OamEntry> currentSprites;

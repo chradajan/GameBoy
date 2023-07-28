@@ -28,11 +28,6 @@ void CPU::LoadImmediateToReg(uint8_t* destReg)
 {
     *destReg = ReadPC();
     mCycle_ = 0;
-
-    #ifdef LOG
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)*destReg;
-        opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)*destReg;
-    #endif
 }
 
 void CPU::LoadMemToReg(uint8_t* destReg, uint16_t srcAddr)
@@ -53,12 +48,6 @@ void CPU::LoadImmediateToMem(uint16_t destAddr)
     {
         case 2:
             cmdData8_ = ReadPC();
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             Write(destAddr, cmdData8_);
@@ -76,13 +65,6 @@ void CPU::LoadAbsoluteMemToReg(uint8_t* destReg)
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
-
             break;
         case 4:
             *destReg = Read(cmdData16_);
@@ -100,12 +82,6 @@ void CPU::LoadRegToAbsoluteMem(uint8_t srcReg)
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
-
             break;
         case 4:
             Write(cmdData16_, srcReg);
@@ -134,12 +110,6 @@ void CPU::LoadLastPageToReg()
     {
         case 2:
             cmdData8_ = ReadPC();
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_ << ")";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             reg_.A = Read(0xFF00 + cmdData8_);
@@ -154,12 +124,6 @@ void CPU::LoadRegToLastPage()
     {
         case 2:
             cmdData8_ = ReadPC();
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_ << "), A";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             Write(0xFF00 + cmdData8_, reg_.A);
@@ -177,13 +141,6 @@ void CPU::LoadImmediate16ToReg(uint16_t* destReg)
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
-
             *destReg = cmdData16_;
             mCycle_ = 0;
             break;
@@ -202,12 +159,6 @@ void CPU::LoadSPnToHL()
     {
         case 2:
             cmdData8_ = ReadPC();
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             int8_t signedImmediate = cmdData8_;
@@ -232,13 +183,6 @@ void CPU::LoadSPToAbsoluteMem()
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_ << ", SP";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
-
             break;
         case 4:
             Write(cmdData16_, reg_.SP & 0xFF);
@@ -312,16 +256,6 @@ void CPU::AddToReg(uint8_t* destReg, uint8_t operand, bool adc, bool inc)
 void CPU::AddMemToA(bool immediate, bool adc)
 {
     uint8_t operand = immediate ? ReadPC() : Read(reg_.HL);
-
-    #ifdef LOG
-        if (immediate)
-        {
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-        }
-
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-    #endif
-
     AddToReg(&reg_.A, operand, adc, false);
 }
 
@@ -356,16 +290,6 @@ void CPU::SubFromReg(uint8_t* destReg, uint8_t operand, bool sbc, bool cp, bool 
 void CPU::SubMemFromA(bool immediate, bool sbc, bool cp)
 {
     uint8_t operand = immediate ? ReadPC() : Read(reg_.HL);
-
-    #ifdef LOG
-        if (immediate)
-        {
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-        }
-
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-    #endif
-
     SubFromReg(&reg_.A, operand, sbc, cp, false);
 }
 
@@ -382,16 +306,6 @@ void CPU::AndWithA(uint8_t operand)
 void CPU::AndMemWithA(bool immediate)
 {
     uint8_t operand = immediate ? ReadPC() : Read(reg_.HL);
-
-    #ifdef LOG
-        if (immediate)
-        {
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-        }
-
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-    #endif
-
     AndWithA(operand);
 }
 
@@ -408,16 +322,6 @@ void CPU::OrWithA(uint8_t operand)
 void CPU::OrMemWithA(bool immediate)
 {
     uint8_t operand = immediate ? ReadPC() : Read(reg_.HL);
-
-    #ifdef LOG
-        if (immediate)
-        {
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-        }
-
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-    #endif
-
     OrWithA(operand);
 }
 
@@ -434,16 +338,6 @@ void CPU::XorWithA(uint8_t operand)
 void CPU::XorMemWithA(bool immediate)
 {
     uint8_t operand = immediate ? ReadPC() : Read(reg_.HL);
-
-    #ifdef LOG
-        if (immediate)
-        {
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-        }
-
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)operand;
-    #endif
-
     XorWithA(operand);
 }
 
@@ -453,11 +347,6 @@ void CPU::IncHL()
     {
         case 2:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             AddToReg(&cmdData8_, 1, false, true);
@@ -471,11 +360,6 @@ void CPU::DecHL()
     {
         case 2:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             SubFromReg(&cmdData8_, 1, false, false, true);
@@ -499,12 +383,6 @@ void CPU::AddImmediateToSP()
     {
         case 2:
             cmdData8_ = ReadPC();
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 3:
             break;
@@ -544,11 +422,6 @@ void CPU::SwapMemNibbles()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             SwapRegNibbles(&cmdData8_);
@@ -621,10 +494,6 @@ void CPU::Stop()
     if (readNextByte)
     {
         cmdData8_ = ReadPC();
-
-        #ifdef LOG
-            opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-        #endif
     }
 
     halted_ = halted;
@@ -755,11 +624,6 @@ void CPU::RLCMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             RLC(&cmdData8_, true);
@@ -774,11 +638,6 @@ void CPU::RLMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             RL(&cmdData8_, true);
@@ -793,11 +652,6 @@ void CPU::RRCMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             RRC(&cmdData8_, true);
@@ -812,11 +666,6 @@ void CPU::RRMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             RR(&cmdData8_, true);
@@ -863,11 +712,6 @@ void CPU::SLAMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             SLA(&cmdData8_);
@@ -882,11 +726,6 @@ void CPU::SRAMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             SRA(&cmdData8_);
@@ -901,11 +740,6 @@ void CPU::SRLMem()
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             SRL(&cmdData8_);
@@ -926,11 +760,6 @@ void CPU::Bit(uint8_t reg, uint8_t bit)
 void CPU::BitMem(uint8_t bit)
 {
     cmdData8_ = Read(reg_.HL);
-
-    #ifdef LOG
-        mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-    #endif
-
     Bit(cmdData8_, bit);
 }
 
@@ -947,11 +776,6 @@ void CPU::SetMem(uint8_t bit)
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             Set(&cmdData8_, bit);
@@ -973,11 +797,6 @@ void CPU::ResMem(uint8_t bit)
     {
         case 3:
             cmdData8_ = Read(reg_.HL);
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             break;
         case 4:
             Res(&cmdData8_, bit);
@@ -995,12 +814,6 @@ void CPU::JumpToAbsolute(bool condition)
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
 
             if (!condition)
             {
@@ -1025,11 +838,6 @@ void CPU::JumpToRelative(bool condition)
             int8_t signedImmediate = cmdData8_;
             cmdData16_ = reg_.PC + signedImmediate;
 
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)cmdData8_;
-            #endif
-
             if (!condition)
             {
                 mCycle_ = 0;
@@ -1053,12 +861,6 @@ void CPU::Call(bool condition)
             break;
         case 3:
             cmdData16_ = (ReadPC() << 8) | cmdData16_;
-
-            #ifdef LOG
-                mnemonic_ << std::uppercase << std::hex << std::setw(4) << std::setfill('0') << (unsigned int)cmdData16_;
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)(cmdData16_ & 0x00FF) << " ";
-                opCodeStream_ << std::setw(2) << std::setfill('0') << (unsigned int)((cmdData16_ & 0xFF00) >> 8);
-            #endif
 
             if (!condition)
             {

@@ -1,4 +1,8 @@
 #include <APU.hpp>
+#include <fstream>
+#include <type_traits>
+
+static_assert(std::is_pod<APU>::value, "APU is not POD!");
 
 void APU::Clock()
 {
@@ -205,6 +209,16 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
         }
+}
+
+void APU::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(this), sizeof(*this));
+}
+
+void APU::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(this), sizeof(*this));
 }
 
 float APU::HPF(float input)

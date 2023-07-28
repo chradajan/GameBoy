@@ -5,7 +5,6 @@
 #include <fstream>
 #include <functional>
 #include <optional>
-#include <sstream>
 #include <utility>
 
 class CPU
@@ -43,6 +42,10 @@ public:
     /// @param bootRom Used to decided where to set PC.
     void Reset(bool bootRom);
 
+    bool IsSerializable() const;
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
+
 private:
     /// @brief Wrapper for Read function.
     std::function<uint8_t(uint16_t)> Read;
@@ -74,9 +77,6 @@ private:
     /// @brief Save the current PC and then set it to the correct interrupt address.
     /// @param addr New address to set PC to.
     void InterruptHandler(uint16_t addr);
-
-    /// @brief Write current logging data to log file.
-    void AddToLog();
 
     // 8-bit loads
     void LoadImmediateToReg(uint8_t* destReg);
@@ -191,13 +191,4 @@ private:
     bool halted_;
     bool haltBug_;
     uint8_t numPendingInterrupts_;
-
-    // Logging variables
-    std::stringstream opCodeStream_;
-    std::stringstream regStream_;
-    std::stringstream mnemonic_;
-    std::ofstream log_;
-    uint64_t mCyclesTotal_;
-    uint64_t cyclesToLog_;
-    bool haltLogged_;
 };

@@ -278,6 +278,73 @@ void MBC3::SaveRAM()
     }
 }
 
+void MBC3::Serialize(std::ofstream& out)
+{
+    for (auto& bank : RAM_)
+    {
+        out.write(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    out.write(reinterpret_cast<char*>(&romBank_), sizeof(romBank_));
+    out.write(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+    out.write(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+
+    if (containsRTC_)
+    {
+        out.write(reinterpret_cast<char*>(&rtcHalted_), sizeof(rtcHalted_));
+        out.write(reinterpret_cast<char*>(&latchInitiated_), sizeof(latchInitiated_));
+
+        out.write(reinterpret_cast<char*>(&S_), sizeof(S_));
+        out.write(reinterpret_cast<char*>(&M_), sizeof(M_));
+        out.write(reinterpret_cast<char*>(&H_), sizeof(H_));
+        out.write(reinterpret_cast<char*>(&DL_), sizeof(DL_));
+        out.write(reinterpret_cast<char*>(&DH_), sizeof(DH_));
+
+        out.write(reinterpret_cast<char*>(&S_internal_), sizeof(S_internal_));
+        out.write(reinterpret_cast<char*>(&M_internal_), sizeof(M_internal_));
+        out.write(reinterpret_cast<char*>(&H_internal_), sizeof(H_internal_));
+        out.write(reinterpret_cast<char*>(&DL_internal_), sizeof(DL_internal_));
+        out.write(reinterpret_cast<char*>(&DH_internal_), sizeof(DH_internal_));
+
+        std::chrono::system_clock::rep serializedTime = referencePoint_.time_since_epoch().count();
+        out.write(reinterpret_cast<char*>(&serializedTime), sizeof(serializedTime));
+    }
+}
+
+void MBC3::Deserialize(std::ifstream& in)
+{
+    for (auto& bank : RAM_)
+    {
+        in.read(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    in.read(reinterpret_cast<char*>(&romBank_), sizeof(romBank_));
+    in.read(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+    in.read(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+
+    if (containsRTC_)
+    {
+        in.read(reinterpret_cast<char*>(&rtcHalted_), sizeof(rtcHalted_));
+        in.read(reinterpret_cast<char*>(&latchInitiated_), sizeof(latchInitiated_));
+
+        in.read(reinterpret_cast<char*>(&S_), sizeof(S_));
+        in.read(reinterpret_cast<char*>(&M_), sizeof(M_));
+        in.read(reinterpret_cast<char*>(&H_), sizeof(H_));
+        in.read(reinterpret_cast<char*>(&DL_), sizeof(DL_));
+        in.read(reinterpret_cast<char*>(&DH_), sizeof(DH_));
+
+        in.read(reinterpret_cast<char*>(&S_internal_), sizeof(S_internal_));
+        in.read(reinterpret_cast<char*>(&M_internal_), sizeof(M_internal_));
+        in.read(reinterpret_cast<char*>(&H_internal_), sizeof(H_internal_));
+        in.read(reinterpret_cast<char*>(&DL_internal_), sizeof(DL_internal_));
+        in.read(reinterpret_cast<char*>(&DH_internal_), sizeof(DH_internal_));
+
+        std::chrono::system_clock::rep serializedTime{};
+        in.read(reinterpret_cast<char*>(&serializedTime), sizeof(serializedTime));
+        referencePoint_ = std::chrono::system_clock::time_point{std::chrono::system_clock::duration{serializedTime}};
+    }
+}
+
 void MBC3::UpdateInternalRTC()
 {
     TimePoint now = std::chrono::system_clock::now();

@@ -50,4 +50,12 @@ void SetInputs(bool down, bool up, bool left, bool right, bool start, bool selec
 /// @brief Change how fast the emulated CPU runs to alter emulation speed.
 /// @param multiplier Clock speed multiplier.
 void SetClockMultiplier(float multiplier);
+
+/// @brief Generate a save state and save to the specified file.
+/// @param[in] saveStatePath Path to save state file to create.
+void CreateSaveState(char* saveStatePath);
+
+/// @brief Load a save state from the specified file.
+/// @param[in] saveStatePath Path to save state file to load.
+void LoadSaveState(char* saveStatePath);
 }

@@ -30,6 +30,9 @@ public:
 
     void SaveRAM() override;
 
+    void Serialize(std::ofstream& out) override;
+    void Deserialize(std::ifstream& in) override;
+
 private:
     // Memory
     std::vector<std::array<uint8_t, 0x4000>> ROM_;

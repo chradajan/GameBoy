@@ -1,5 +1,13 @@
 #include <Channel1.hpp>
 
+constexpr int8_t DUTY_CYCLE[4][8] =
+{
+    {1, 1, 1, 1, 1, 1, 1, -1},
+    {1, 1, 1, 1, 1, 1, -1, -1},
+    {1, 1, 1, 1, -1, -1, -1, -1},
+    {1, 1, -1, -1, -1, -1, -1, -1}
+};
+
 void Channel1::PowerOn(bool const skipBootRom)
 {
     if (skipBootRom)

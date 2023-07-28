@@ -7,6 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
@@ -147,6 +148,10 @@ public:
     {
         buttons_ = {down, up, left, right, start, select, b, a};
     }
+
+    bool IsSerializable() const;
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
 
 private:
     /// @brief Execute the specified number of machine cycles.

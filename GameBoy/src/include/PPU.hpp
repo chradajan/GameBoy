@@ -3,6 +3,7 @@
 #include <PixelFIFO.hpp>
 #include <array>
 #include <cstdint>
+#include <fstream>
 #include <memory>
 #include <queue>
 #include <vector>
@@ -54,6 +55,10 @@ public:
     // Register access
     bool LCDEnabled() const { return LCDC_ & 0x80; }
     uint8_t STAT() const { return STAT_; }
+
+    bool IsSerializable() const;
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
 
 private:
     uint16_t WindowTileMapBaseAddr() const { return (LCDC_ & 0x40) ? 0x9C00 : 0x9800; }

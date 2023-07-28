@@ -1,6 +1,8 @@
 #include <GBC.hpp>
 #include <GameBoy.hpp>
 #include <cstdint>
+#include <filesystem>
+#include <fstream>
 #include <memory>
 
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
@@ -11,6 +13,12 @@ constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 constexpr int CPU_CLOCK_FREQUENCY = 1048576;
 int EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY;
 float CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
+
+// Save states
+bool createSaveState = false;
+bool loadSaveState = false;
+std::filesystem::path saveStatePathFS = "";
+
 
 void Initialize(uint8_t* frameBuffer,
                 char* const savePath,
@@ -54,6 +62,27 @@ void CollectAudioSamples(float* buffer, int numSamples)
         if (frameUpdateCallback && gb->FrameReady())
         {
             frameUpdateCallback();
+
+            if (createSaveState && gb->IsSerializable())
+            {
+                std::ofstream out(saveStatePathFS, std::ios::binary);
+
+                if (!out.fail())
+                {
+                    gb->Serialize(out);
+                    createSaveState = false;
+                }
+            }
+            else if (loadSaveState && gb->IsSerializable())
+            {
+                std::ifstream in(saveStatePathFS, std::ios::binary);
+
+                if (!in.fail())
+                {
+                    gb->Deserialize(in);
+                    loadSaveState = false;
+                }
+            }
         }
 
         float left, right;
@@ -84,4 +113,22 @@ void SetClockMultiplier(float const multiplier)
 {
     EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY * multiplier;
     CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
+}
+
+void CreateSaveState(char* saveStatePath)
+{
+    createSaveState = true;
+    saveStatePathFS = saveStatePath;
+}
+
+void LoadSaveState(char* saveStatePath)
+{
+    loadSaveState = true;
+    saveStatePathFS = saveStatePath;
+    // std::ifstream in(saveStatePath, std::ios::binary);
+
+    // if (!in.fail())
+    // {
+    //     gb->Deserialize(in);
+    // }
 }

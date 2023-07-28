@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <fstream>
 
 constexpr uint8_t ZERO_FLAG = 0x80;
 constexpr uint8_t SUBTRACTION_FLAG = 0x40;
@@ -33,7 +34,9 @@ public:
         SP = 0xFFFE;
     }
 
-public:
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
+
     uint8_t& A;
     uint8_t& F;
     uint16_t& AF;

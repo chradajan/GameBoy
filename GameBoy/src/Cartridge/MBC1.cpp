@@ -39,7 +39,7 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
         {
             for (auto& bank : RAM_)
             {
-                save.read((char*)bank.data(), 0x2000);
+                save.read(reinterpret_cast<char*>(bank.data()), 0x2000);
             }
         }
     }
@@ -186,8 +186,34 @@ void MBC1::SaveRAM()
         {
             for (auto& bank : RAM_)
             {
-                save.write((char*)bank.data(), 0x2000);
+                save.write(reinterpret_cast<char*>(bank.data()), 0x2000);
             }
         }
     }
+}
+
+void MBC1::Serialize(std::ofstream& out)
+{
+    for (auto& bank : RAM_)
+    {
+        out.write(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    out.write(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+    out.write(reinterpret_cast<char*>(&romBank_), sizeof(romBank_));
+    out.write(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+    out.write(reinterpret_cast<char*>(&advancedBankMode_), sizeof(advancedBankMode_));
+}
+
+void MBC1::Deserialize(std::ifstream& in)
+{
+    for (auto& bank : RAM_)
+    {
+        in.read(reinterpret_cast<char*>(bank.data()), bank.size());
+    }
+
+    in.read(reinterpret_cast<char*>(&ramEnabled_), sizeof(ramEnabled_));
+    in.read(reinterpret_cast<char*>(&romBank_), sizeof(romBank_));
+    in.read(reinterpret_cast<char*>(&ramBank_), sizeof(ramBank_));
+    in.read(reinterpret_cast<char*>(&advancedBankMode_), sizeof(advancedBankMode_));
 }

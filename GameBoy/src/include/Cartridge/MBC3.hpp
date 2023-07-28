@@ -33,6 +33,9 @@ public:
 
     void SaveRAM() override;
 
+    void Serialize(std::ofstream& out) override;
+    void Deserialize(std::ifstream& in) override;
+
 private:
     void UpdateInternalRTC();
 

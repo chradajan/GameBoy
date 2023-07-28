@@ -5,6 +5,7 @@
 #include <Channel3.hpp>
 #include <Channel4.hpp>
 #include <cstdint>
+#include <fstream>
 
 class APU
 {
@@ -20,6 +21,9 @@ public:
 
     uint8_t Read(uint8_t ioAddr);
     void Write(uint8_t ioAddr, uint8_t data);
+
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
 
 private:
     float HPF(float input);
