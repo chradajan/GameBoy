@@ -1,5 +1,6 @@
 #include <GBC.hpp>
 #include <GameBoy.hpp>
+#include <cstdint>
 #include <memory>
 
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
@@ -40,13 +41,13 @@ bool FrameReady()
     return gb->FrameReady();
 }
 
-void CollectAudioSamples(float* buffer, size_t numSamples)
+void CollectAudioSamples(float* buffer, int numSamples)
 {
     static float audioTime = 0.0;
 
-    for (size_t i = 0; i < numSamples; i += 2)
+    for (int i = 0; i < numSamples; i += 2)
     {
-        size_t mCycles = ((SAMPLE_PERIOD - audioTime) / CPU_CLOCK_PERIOD) + 1;
+        int mCycles = ((SAMPLE_PERIOD - audioTime) / CPU_CLOCK_PERIOD) + 1;
         gb->Clock(mCycles);
         audioTime = (mCycles * CPU_CLOCK_PERIOD) - SAMPLE_PERIOD;
 

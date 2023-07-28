@@ -30,7 +30,7 @@ bool FrameReady();
 ///        samples, call the frame ready callback.
 /// @param buffer Buffer to write 2-channel 32-bit float PCM samples to.
 /// @param numSamples Number of samples to collect.
-void CollectAudioSamples(float* buffer, size_t numSamples);
+void CollectAudioSamples(float* buffer, int numSamples);
 
 /// @brief Specify a callback function used for rendering the frame buffer.
 /// @param[in] callback Function to call anytime the frame buffer is ready to be rendered.

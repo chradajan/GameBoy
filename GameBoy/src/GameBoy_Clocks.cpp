@@ -1,9 +1,10 @@
 #include <GameBoy.hpp>
+#include <cstdint>
 #include <iostream>
 
-void GameBoy::RunMCycles(size_t const numCycles)
+void GameBoy::RunMCycles(int const numCycles)
 {
-    for (size_t i = 0; i < numCycles; ++i)
+    for (int i = 0; i < numCycles; ++i)
     {
         for (uint_fast8_t i = 0; i < 4; ++i)
         {

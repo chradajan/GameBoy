@@ -1,4 +1,5 @@
 .vscode/
+.ds_store
 __pycache__/
 boot/
 GameBoy/build/

@@ -128,7 +128,7 @@ public:
     /// @brief Run the Game Boy for some number of machine cycles.
     /// @param[in] numCycles Number of machine cycles to run it for.
     /// @pre Initialize, InsertCartridge, and PowerOn must have been called.
-    void Clock(size_t numCycles);
+    void Clock(int numCycles);
 
     bool FrameReady() { return ppu_.FrameReady(); }
 
@@ -151,7 +151,7 @@ public:
 private:
     /// @brief Execute the specified number of machine cycles.
     /// @param numCycles Number of machine cycles to execute.
-    void RunMCycles(size_t numCycles);
+    void RunMCycles(int numCycles);
 
     void ClockVariableSpeedComponents(bool clockCpu);
 

@@ -6,6 +6,7 @@
 #include <Cartridge/MBC5.hpp>
 #include <algorithm>
 #include <array>
+#include <cstdint>
 #include <functional>
 #include <sstream>
 
@@ -182,7 +183,7 @@ void GameBoy::PowerOn()
     ppu_.PowerOn(!runningBootRom_);
 }
 
-void GameBoy::Clock(size_t const numCycles)
+void GameBoy::Clock(int const numCycles)
 {
     if (!cartridge_ && !runningBootRom_)
     {

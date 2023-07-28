@@ -1,7 +1,6 @@
 #include <PPU.hpp>
 #include <array>
 #include <cstdint>
-#include <cstring>
 
 std::array<std::array<uint8_t, 3>, 4> DMG_PALETTE = {{{175, 203, 70},
                                                       {121, 170, 109},
