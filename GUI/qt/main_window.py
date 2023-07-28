@@ -31,22 +31,53 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_ui(self):
         # Set window settings
-        self.setWindowTitle("Game Boy")
+        self.setWindowTitle("Game Boy (0 fps)")
         self.setContentsMargins(0, 0, 0, 0)
 
         # Create menu bar
         file = self.menuBar().addMenu("File")
+        emulation = self.menuBar().addMenu("Emulation")
         options = self.menuBar().addMenu("Options")
         debug = self.menuBar().addMenu("Debug")
 
         # File menu
         file_loadrom_action = QtGui.QAction("Load ROM...", self)
-        file_loadrom_action.triggered.connect(self.load_rom_trigger)
+        file_loadrom_action.triggered.connect(self._load_rom_trigger)
         file_loadrom = file.addAction(file_loadrom_action)
 
         file_exit_action = QtGui.QAction("Exit", self)
         file_exit_action.triggered.connect(QtWidgets.QApplication.quit)
         file_exit = file.addAction(file_exit_action)
+
+        # Emulation menu
+        emulation_pause_action = QtGui.QAction("Pause", self)
+        emulation_pause_action.triggered.connect(self._pause_emulation_trigger)
+        emulation_pause_action.setCheckable(True)
+        emulation_pause = emulation.addAction(emulation_pause_action)
+
+        emulation_gamespeed = emulation.addMenu("Game speed")
+
+        for speed_str, speed_float in self.game_speeds.items():
+            action = QtGui.QAction(speed_str, self)
+            action.setCheckable(True)
+
+            if speed_float == self.game_speed:
+                action.setChecked(True)
+                self.last_checked_game_speed = action
+
+            action.triggered.connect(self._game_speed_trigger)
+            emulation_gamespeed.addAction(action)
+
+        emulation.addSeparator()
+
+        emulation_savestate = emulation.addMenu("Save state")
+        emulation_loadstate = emulation.addMenu("Load state")
+
+        emulation.addSeparator()
+
+        emulation_reset_action = QtGui.QAction("Restart", self)
+        emulation_reset_action.triggered.connect(self._reset_trigger)
+        emulation.addAction(emulation_reset_action)
 
         # Options menu
         options_windowsize = options.addMenu("Window size")
@@ -61,19 +92,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
             action.triggered.connect(self._window_size_trigger)
             options_windowsize.addAction(action)
-
-        options_gamespeed = options.addMenu("Game speed")
-
-        for speed_str, speed_float in self.game_speeds.items():
-            action = QtGui.QAction(speed_str, self)
-            action.setCheckable(True)
-
-            if speed_float == self.game_speed:
-                action.setChecked(True)
-                self.last_checked_game_speed = action
-            
-            action.triggered.connect(self._game_speed_trigger)
-            options_gamespeed.addAction(action)
 
         # Debug menu
         debug_sound_channels = debug.addMenu("Sound channels")
@@ -131,7 +149,7 @@ class MainWindow(QtWidgets.QMainWindow):
     #                                                                     #
     #######################################################################
 
-    def load_rom_trigger(self):
+    def _load_rom_trigger(self):
         file_dialog = QtWidgets.QFileDialog(self)
         file_dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         rom_path, _ = file_dialog.getOpenFileName(self,
@@ -145,11 +163,18 @@ class MainWindow(QtWidgets.QMainWindow):
             game_boy.power_on()
             sdl_audio.unlock_audio(self.audio_device_id)
 
+    def _pause_emulation_trigger(self):
+        if self.sender().isChecked():
+            sdl_audio.lock_audio(self.audio_device_id)
+        else:
+            sdl_audio.unlock_audio(self.audio_device_id)
+
+    def _reset_trigger(self):
+        game_boy.power_on()
+
     def _window_size_trigger(self):
         self.last_checked_window_size.setChecked(False)
         self.last_checked_window_size = self.sender()
-        self.last_checked_window_size.setChecked(True)
-
         self.window_scale = self.window_sizes[self.sender().text()]
 
         sdl_audio.lock_audio(self.audio_device_id)
@@ -159,7 +184,6 @@ class MainWindow(QtWidgets.QMainWindow):
     def _game_speed_trigger(self):
         self.last_checked_game_speed.setChecked(False)
         self.last_checked_game_speed = self.sender()
-        self.last_checked_game_speed.setChecked(True)
 
         sdl_audio.lock_audio(self.audio_device_id)
         game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])

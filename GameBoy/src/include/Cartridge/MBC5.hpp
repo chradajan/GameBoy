@@ -28,6 +28,8 @@ public:
     uint8_t ReadRAM(uint16_t addr) override;
     void WriteRAM(uint16_t addr, uint8_t data) override;
 
+    void SaveRAM() override;
+
 private:
     // Memory
     std::vector<std::array<uint8_t, 0x4000>> ROM_;

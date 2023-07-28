@@ -26,6 +26,8 @@ public:
     uint8_t ReadRAM(uint16_t addr) override;
     void WriteRAM(uint16_t addr, uint8_t data) override;
 
+    void SaveRAM() override;
+
 private:
     std::array<std::array<uint8_t, 0x4000>, 2> ROM_;
     std::array<uint8_t, 0x2000> RAM_;

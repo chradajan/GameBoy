@@ -31,6 +31,8 @@ public:
     uint8_t ReadRAM(uint16_t addr) override;
     void WriteRAM(uint16_t addr, uint8_t data) override;
 
+    void SaveRAM() override;
+
 private:
     void UpdateInternalRTC();
 

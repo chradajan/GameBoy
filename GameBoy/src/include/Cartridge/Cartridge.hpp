@@ -16,6 +16,8 @@ public:
     virtual uint8_t ReadRAM(uint16_t addr) = 0;
     virtual void WriteRAM(uint16_t addr, uint8_t data) = 0;
 
+    virtual void SaveRAM() = 0;
+
 protected:
     bool containsRAM_;
     bool batteryBacked_;

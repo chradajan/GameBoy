@@ -112,6 +112,11 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
 
 void GameBoy::PowerOn()
 {
+    if (cartridge_)
+    {
+        cartridge_->SaveRAM();
+    }
+
     cgbMode_ = true;
     std::ifstream bootROM(bootRomPath_, std::ios::binary);
 

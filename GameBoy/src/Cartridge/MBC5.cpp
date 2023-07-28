@@ -55,18 +55,7 @@ MBC5::MBC5(std::array<uint8_t, 0x4000> const& bank0,
 
 MBC5::~MBC5()
 {
-    if (batteryBacked_ && !savePath_.empty())
-    {
-        std::ofstream save(savePath_, std::ios::binary);
-
-        if (!save.fail())
-        {
-            for (auto& bank : RAM_)
-            {
-                save.write(reinterpret_cast<char*>(bank.data()), 0x2000);
-            }
-        }
-    }
+    SaveRAM();
 }
 
 void MBC5::Reset()
@@ -130,5 +119,21 @@ void MBC5::WriteRAM(uint16_t addr, uint8_t data)
     if (containsRAM_ && ramEnabled_)
     {
         RAM_[ramBank_][addr - 0xA000] = data;
+    }
+}
+
+void MBC5::SaveRAM()
+{
+    if (batteryBacked_ && !savePath_.empty())
+    {
+        std::ofstream save(savePath_, std::ios::binary);
+
+        if (!save.fail())
+        {
+            for (auto& bank : RAM_)
+            {
+                save.write(reinterpret_cast<char*>(bank.data()), 0x2000);
+            }
+        }
     }
 }

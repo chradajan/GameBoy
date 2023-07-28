@@ -65,18 +65,7 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
 
 MBC1::~MBC1()
 {
-    if (batteryBacked_ && !savePath_.empty())
-    {
-        std::ofstream save(savePath_, std::ios::binary);
-
-        if (!save.fail())
-        {
-            for (auto& bank : RAM_)
-            {
-                save.write((char*)bank.data(), 0x2000);
-            }
-        }
-    }
+    SaveRAM();
 }
 
 void MBC1::Reset()
@@ -183,6 +172,22 @@ void MBC1::WriteRAM(uint16_t addr, uint8_t data)
         else
         {
             RAM_[ramBank_][addr] = data;
+        }
+    }
+}
+
+void MBC1::SaveRAM()
+{
+    if (batteryBacked_ && !savePath_.empty())
+    {
+        std::ofstream save(savePath_, std::ios::binary);
+
+        if (!save.fail())
+        {
+            for (auto& bank : RAM_)
+            {
+                save.write((char*)bank.data(), 0x2000);
+            }
         }
     }
 }
