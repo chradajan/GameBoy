@@ -94,6 +94,8 @@ class MainWindow(QtWidgets.QMainWindow):
             self.load_state_actions.append(QtGui.QAction(f"Load from slot {i} - Empty", self))
             self.save_state_actions[-1].triggered.connect(self._create_save_state_trigger)
             self.load_state_actions[-1].triggered.connect(self._load_save_state_trigger)
+            self.save_state_actions[-1].setShortcut(QtGui.QKeySequence(f"{i}"))
+            self.load_state_actions[-1].setShortcut(QtGui.QKeySequence(f"Ctrl+{i}"))
             emulation_savestate.addAction(self.save_state_actions[-1])
             emulation_loadstate.addAction(self.load_state_actions[-1])
 
