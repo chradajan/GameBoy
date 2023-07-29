@@ -27,7 +27,7 @@ MBC0::MBC0(std::array<uint8_t, 0x4000> const& bank0,
 
         if (!save.fail())
         {
-            save.read((char*)RAM_.data(), 0x2000);
+            save.read(reinterpret_cast<char*>(RAM_.data()), 0x2000);
         }
     }
     else
@@ -87,7 +87,7 @@ void MBC0::SaveRAM()
 
         if (!save.fail())
         {
-            save.write((char*)RAM_.data(), 0x2000);
+            save.write(reinterpret_cast<char*>(RAM_.data()), 0x2000);
         }
     }
 }

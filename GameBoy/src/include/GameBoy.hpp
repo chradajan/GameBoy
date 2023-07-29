@@ -121,7 +121,9 @@ public:
 
     /// @brief Load cartridge data from GameBoy ROM.
     /// @param romPath Path to gb ROM file.
-    void InsertCartridge(std::filesystem::path romPath);
+    /// @param[out] romName ROM name from cartridge header.
+    /// @return True if ROM was successfully loaded.
+    bool InsertCartridge(std::filesystem::path romPath, char* romName);
 
     /// @brief Prepare the GameBoy to be run.
     void PowerOn();

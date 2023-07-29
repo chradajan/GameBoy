@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <memory>
@@ -35,20 +36,27 @@ void GameBoy::Initialize(uint8_t* frameBuffer,
     ppu_.SetFrameBuffer(frameBuffer);
 }
 
-void GameBoy::InsertCartridge(std::filesystem::path const romPath)
+bool GameBoy::InsertCartridge(std::filesystem::path const romPath, char* romName)
 {
+    std::ifstream rom(romPath, std::ios::binary);
+
+    if (rom.fail())
+    {
+        return false;
+    }
+
     if (cartridge_)
     {
         cartridge_.reset();
     }
 
+    bool success = true;
     std::array<uint8_t, 0x4000> bank0;
-    std::ifstream rom(romPath, std::ios::binary);
     rom.read(reinterpret_cast<char*>(bank0.data()), sizeof(bank0[0]) * bank0.size());
-    uint8_t cartridgeType = bank0[0x0147];
+    uint_fast8_t cartridgeType = bank0[0x0147];
     cgbCartridge_ = (bank0[0x143] & 0x80) == 0x80;
 
-    uint8_t titleLength = cgbCartridge_ ? 15 : 16;
+    uint_fast8_t titleLength = cgbCartridge_ ? 15 : 16;
     std::stringstream title;
 
     for (uint_fast8_t i = 0; i < titleLength; ++i)
@@ -61,6 +69,7 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
         title << static_cast<char>(bank0[0x0134 + i]);
     }
 
+    std::strcpy(romName, title.str().c_str());
     std::filesystem::path savePath;
 
     if (!saveDirectory_.empty())
@@ -68,8 +77,8 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
         savePath = saveDirectory_ / (title.str() + ".sav");
     }
 
-    uint16_t romBanks = 2 << bank0[0x0148];
-    uint8_t ramBanks;
+    uint_fast16_t romBanks = 2 << bank0[0x0148];
+    uint_fast8_t ramBanks;
 
     switch (bank0[0x0149])
     {
@@ -112,8 +121,11 @@ void GameBoy::InsertCartridge(std::filesystem::path const romPath)
             break;
         default:
             cartridge_ = nullptr;
+            success = false;
             break;
     }
+
+    return success;
 }
 
 void GameBoy::PowerOn()

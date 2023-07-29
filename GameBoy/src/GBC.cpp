@@ -21,17 +21,17 @@ std::filesystem::path saveStatePathFS = "";
 
 
 void Initialize(uint8_t* frameBuffer,
+                void(*updateScreen)(),
                 char* const savePath,
                 char* const bootRomPath)
 {
+    frameUpdateCallback = updateScreen;
     gb->Initialize(frameBuffer, savePath, bootRomPath);
 }
 
-void InsertCartridge(char* romPath)
+bool InsertCartridge(char* romPath, char* romName)
 {
-    std::filesystem::path romPathFS = romPath;
-
-    gb->InsertCartridge(romPath);
+    return gb->InsertCartridge(romPath, romName);
 }
 
 void PowerOn()
@@ -42,11 +42,6 @@ void PowerOn()
 void PowerOff()
 {
     gb.reset();
-}
-
-bool FrameReady()
-{
-    return gb->FrameReady();
 }
 
 void CollectAudioSamples(float* buffer, int numSamples)
@@ -90,11 +85,6 @@ void CollectAudioSamples(float* buffer, int numSamples)
         buffer[i] = left * 0.15;
         buffer[i + 1] = right * 0.15;
     }
-}
-
-void SetFrameReadyCallback(void(*callback)())
-{
-    frameUpdateCallback = callback;
 }
 
 void SetInputs(bool const down,

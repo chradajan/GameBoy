@@ -28,7 +28,7 @@ MBC1::MBC1(std::array<uint8_t, 0x4000> const& bank0,
 
     for (size_t i = 1; i < ROM_.size(); ++i)
     {
-        rom.read((char*)ROM_[i].data(), 0x4000);
+        rom.read(reinterpret_cast<char*>(ROM_[i].data()), 0x4000);
     }
 
     if (batteryBacked_ && !savePath_.empty())
