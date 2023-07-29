@@ -6,3 +6,4 @@ GameBoy/build/
 GameBoy/lib/
 roms/
 saves/
+save_states/

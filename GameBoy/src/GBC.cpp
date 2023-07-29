@@ -61,21 +61,21 @@ void CollectAudioSamples(float* buffer, int numSamples)
             if (createSaveState && gb->IsSerializable())
             {
                 std::ofstream out(saveStatePathFS, std::ios::binary);
+                createSaveState = false;
 
                 if (!out.fail())
                 {
                     gb->Serialize(out);
-                    createSaveState = false;
                 }
             }
             else if (loadSaveState && gb->IsSerializable())
             {
                 std::ifstream in(saveStatePathFS, std::ios::binary);
+                loadSaveState = false;
 
                 if (!in.fail())
                 {
                     gb->Deserialize(in);
-                    loadSaveState = false;
                 }
             }
         }
@@ -115,10 +115,4 @@ void LoadSaveState(char* saveStatePath)
 {
     loadSaveState = true;
     saveStatePathFS = saveStatePath;
-    // std::ifstream in(saveStatePath, std::ios::binary);
-
-    // if (!in.fail())
-    // {
-    //     gb->Deserialize(in);
-    // }
 }

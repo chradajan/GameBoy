@@ -24,17 +24,11 @@ def refresh_screen_callback():
 def main() -> int:
     global MAIN_WINDOW
     main_path = Path(__file__).resolve().parents[1]
-    game_boy.initialize_game_boy(main_path)
-
-    if len(sys.argv) > 1:
-        game_boy.insert_cartridge(sys.argv[1])
-        game_boy.power_on()
-
+    game_boy.initialize_game_boy(main_path, refresh_screen_callback)
     audio_device_id = sdl_audio.initialize_sdl_audio()
 
     app = QtWidgets.QApplication([])
     MAIN_WINDOW = MainWindow(audio_device_id, main_path)
-    game_boy.set_frame_ready_callback(refresh_screen_callback)
 
     sdl_audio.unlock_audio(audio_device_id)
     val = app.exec()

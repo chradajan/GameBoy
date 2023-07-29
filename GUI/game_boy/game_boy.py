@@ -19,6 +19,29 @@ if sys.platform == "darwin":
 elif sys.platform == "win32":
     GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
 
+GAME_BOY.Initialize.argtypes = [
+    ctypes.POINTER(ctypes.c_uint8),
+    ctypes.CFUNCTYPE(None),
+    ctypes.POINTER(ctypes.c_char),
+    ctypes.POINTER(ctypes.c_char)
+]
+GAME_BOY.InsertCartridge.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+GAME_BOY.InsertCartridge.restype = ctypes.c_bool
+GAME_BOY.CollectAudioSamples.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_int]
+GAME_BOY.SetInputs.argtypes = [
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool,
+    ctypes.c_bool
+]
+GAME_BOY.SetClockMultiplier.argtypes = [ctypes.c_float]
+GAME_BOY.CreateSaveState.argtypes = [ctypes.POINTER(ctypes.c_char)]
+GAME_BOY.LoadSaveState.argtypes = [ctypes.POINTER(ctypes.c_char)]
+
 @dataclass
 class JoyPad:
     """Current joypad state."""
@@ -32,11 +55,12 @@ class JoyPad:
     a: bool
 
 
-def initialize_game_boy(base_path: Path):
+def initialize_game_boy(base_path: Path, update_screen_callback: ctypes.CFUNCTYPE(None)):
     """Initialize the Game Boy library.
 
     Args:
         base_path: Directory containing the save and boot ROM paths.
+        update_screen_callback: Function to call to refresh screen.
     """
     save_path = base_path / "saves"
     boot_rom_dir = base_path / "boot"
@@ -47,13 +71,16 @@ def initialize_game_boy(base_path: Path):
     save_path_buffer = ctypes.create_string_buffer(str.encode(str(save_path.absolute())))
     boot_rom_path_buffer = ctypes.create_string_buffer(str.encode(str(boot_rom_path.absolute())))
 
-    GAME_BOY.Initialize(FRAME_BUFFER, save_path_buffer, boot_rom_path_buffer)
+    GAME_BOY.Initialize(FRAME_BUFFER, update_screen_callback, save_path_buffer, boot_rom_path_buffer)
 
-def insert_cartridge(path: str | bytes | Path):
+def insert_cartridge(path: str | bytes | Path) -> str:
     """Load specified Game Boy ROM file.
 
     Args:
         path: Path to ROM file.
+
+    Returns:
+        ROM name from cartridge header.
     """
     if type(path) == str:
         path_buffer = ctypes.create_string_buffer(str.encode(path))
@@ -62,7 +89,15 @@ def insert_cartridge(path: str | bytes | Path):
     elif type(path) == Path:
         path_buffer = ctypes.create_string_buffer(str.encode(str(path.absolute())))
 
-    GAME_BOY.InsertCartridge(path_buffer)
+    rom_name = ctypes.create_string_buffer(16)
+    success = GAME_BOY.InsertCartridge(path_buffer, rom_name)
+
+    if success:
+        rom_str = rom_name.value.decode()
+    else:
+        rom_str = ""
+
+    return rom_str
 
 def power_on():
     """Power on the Game Boy. This function will reset the Game Boy to its initialize power on state."""
@@ -102,7 +137,7 @@ def collect_audio_samples(buffer: ctypes.POINTER(ctypes.c_float), len: int):
         buffer: Pointer to audio buffer to be filled.
         len: Number of samples to collect.
     """
-    GAME_BOY.CollectAudioSamples(buffer, ctypes.c_size_t(len))
+    GAME_BOY.CollectAudioSamples(buffer, len)
 
 def set_frame_ready_callback(callback: ctypes.CFUNCTYPE(None)):
     """Set the callback function used to render the frame buffer whenever it's full.
@@ -131,3 +166,21 @@ def change_emulation_speed(multiplier: float):
         multiplier: Multiplier to alter clock speed by.
     """
     GAME_BOY.SetClockMultiplier(ctypes.c_float(multiplier))
+
+def create_save_state(save_state_path: Path):
+    """Generate a save state at the specified path.
+
+    Args:
+        save_state_path: Path to save state to.
+    """
+    save_state_path_buffer = ctypes.create_string_buffer(str.encode(str(save_state_path.absolute())))
+    GAME_BOY.CreateSaveState(save_state_path_buffer)
+
+def load_save_state(save_state_path: Path):
+    """Load a save state from the specified path.
+
+    Args:
+        save_state_path: Path to load state from.
+    """
+    save_state_path_buffer = ctypes.create_string_buffer(str.encode(str(save_state_path.absolute())))
+    GAME_BOY.LoadSaveState(save_state_path_buffer)

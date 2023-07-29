@@ -1,5 +1,6 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
+import datetime
 from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -10,17 +11,32 @@ class MainWindow(QtWidgets.QMainWindow):
     window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
     game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
 
-    def __init__(self, audio_device_id: int, file_dialog_path: Path):
+    def __init__(self, audio_device_id: int, root_directory: Path):
         super().__init__()
-        self.window_scale = 4
         self.game_speed = 1.0
+        self.root_directory = root_directory
+        self.last_rom_directory = root_directory
+
+        # Window information
+        self.window_scale = 4
+        self.game_title = "Game Boy"
+        self.game_loaded = False
+
+        # I/O
         self.audio_device_id = audio_device_id
-        self.file_dialog_path = file_dialog_path
         self.keys_pressed = set()
 
+        # GUI components
         self.last_checked_window_size: QtGui.QAction = None
         self.last_checked_game_speed: QtGui.QAction = None
+        self.save_state_actions = []
+        self.load_state_actions = []
+        self.save_state_timer = QtCore.QTimer(self)
+        self.save_state_timer.setSingleShot(True)
+        self.save_state_timer.setInterval(150)
+        self.save_state_timer.timeout.connect(self._refresh_save_state_menus)
 
+        # FPS info
         self.frame_counter = 0
         self.fps_timer = QtCore.QTimer(self)
         self.fps_timer.timeout.connect(self._update_fps_counter)
@@ -31,7 +47,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_ui(self):
         # Set window settings
-        self.setWindowTitle("Game Boy (0 fps)")
+        self.setWindowTitle(f"{self.game_title} (0 fps)")
         self.setContentsMargins(0, 0, 0, 0)
 
         # Create menu bar
@@ -43,17 +59,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # File menu
         file_loadrom_action = QtGui.QAction("Load ROM...", self)
         file_loadrom_action.triggered.connect(self._load_rom_trigger)
-        file_loadrom = file.addAction(file_loadrom_action)
+        file.addAction(file_loadrom_action)
 
         file_exit_action = QtGui.QAction("Exit", self)
         file_exit_action.triggered.connect(QtWidgets.QApplication.quit)
-        file_exit = file.addAction(file_exit_action)
+        file.addAction(file_exit_action)
 
         # Emulation menu
         emulation_pause_action = QtGui.QAction("Pause", self)
         emulation_pause_action.triggered.connect(self._pause_emulation_trigger)
         emulation_pause_action.setCheckable(True)
-        emulation_pause = emulation.addAction(emulation_pause_action)
+        emulation.addAction(emulation_pause_action)
 
         emulation_gamespeed = emulation.addMenu("Game speed")
 
@@ -72,6 +88,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
         emulation_savestate = emulation.addMenu("Save state")
         emulation_loadstate = emulation.addMenu("Load state")
+
+        for i in range(1, 6):
+            self.save_state_actions.append(QtGui.QAction(f"Save to slot {i} - Empty", self))
+            self.load_state_actions.append(QtGui.QAction(f"Load from slot {i} - Empty", self))
+            self.save_state_actions[-1].triggered.connect(self._create_save_state_trigger)
+            self.load_state_actions[-1].triggered.connect(self._load_save_state_trigger)
+            emulation_savestate.addAction(self.save_state_actions[-1])
+            emulation_loadstate.addAction(self.load_state_actions[-1])
 
         emulation.addSeparator()
 
@@ -94,7 +118,7 @@ class MainWindow(QtWidgets.QMainWindow):
             options_windowsize.addAction(action)
 
         # Debug menu
-        debug_sound_channels = debug.addMenu("Sound channels")
+        debug_soundchannels = debug.addMenu("Sound channels")
 
         # Create LCD output label
         self.lcd = QtWidgets.QLabel(self)
@@ -103,27 +127,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Update window size
         self._resize_window()
 
-    def _resize_window(self):
-        width = WIDTH * self.window_scale
-        lcd_height = HEIGHT * self.window_scale
-        window_height = self.menuBar().height() + lcd_height
-        self.setFixedSize(width, window_height)
-        self.lcd.resize(width, lcd_height)
-
-    def _update_fps_counter(self):
-        self.setWindowTitle(f"Game Boy ({self.frame_counter} fps)")
-        self.frame_counter = 0
-
-    def refresh_screen(self):
-        self.frame_counter += 1
-        self._update_joypad()
-
-        image = QtGui.QImage(game_boy.get_frame_buffer(),
-                             WIDTH,
-                             HEIGHT,
-                             QtGui.QImage.Format.Format_RGB888)
-
-        self.lcd.setPixmap(QtGui.QPixmap.fromImage(image).scaled(self.lcd.width(), self.lcd.height()))
 
     def _update_joypad(self):
         joypad = game_boy.JoyPad(
@@ -138,55 +141,148 @@ class MainWindow(QtWidgets.QMainWindow):
         )
         game_boy.set_joypad_state(joypad)
 
+    ##########################
+    #      ____ _   _ ___    #
+    #     / ___| | | |_ _|   #
+    #    | |  _| | | || |    #
+    #    | |_| | |_| || |    #
+    #     \____|\___/|___|   #
+    #                        #
+    ##########################
 
-    #######################################################################
-    #    __  __                                 _   _                     #
-    #   |  \/  |                      /\       | | (_)                    #
-    #   | \  / | ___ _ __  _   _     /  \   ___| |_ _  ___  _ __  ___     #
-    #   | |\/| |/ _ \ '_ \| | | |   / /\ \ / __| __| |/ _ \| '_ \/ __|    #
-    #   | |  | |  __/ | | | |_| |  / ____ \ (__| |_| | (_) | | | \__ \    #
-    #   |_|  |_|\___|_| |_|\__,_| /_/    \_\___|\__|_|\___/|_| |_|___/    #
-    #                                                                     #
-    #######################################################################
+    def refresh_screen(self):
+        """Update the LCD label with the latest frame buffer contents."""
+        self.frame_counter += 1
+        self._update_joypad()
+
+        image = QtGui.QImage(game_boy.get_frame_buffer(),
+                             WIDTH,
+                             HEIGHT,
+                             QtGui.QImage.Format.Format_RGB888)
+
+        self.lcd.setPixmap(QtGui.QPixmap.fromImage(image).scaled(self.lcd.width(), self.lcd.height()))
+
+    def _update_fps_counter(self):
+        """Update the fps counter in the window title based on performance over the last second."""
+        self.setWindowTitle(f"{self.game_title} ({self.frame_counter} fps)")
+        self.frame_counter = 0
+
+    def _resize_window(self):
+        """Resize the window based on window_scale."""
+        width = WIDTH * self.window_scale
+        lcd_height = HEIGHT * self.window_scale
+        window_height = self.menuBar().height() + lcd_height
+        self.setFixedSize(width, window_height)
+        self.lcd.resize(width, lcd_height)
+
+    def _refresh_save_state_menus(self):
+        """Check if any save states exist for the current game. For any found save states, update the corresponding submenu."""
+        if not self.game_loaded:
+            for i in range(0, 5):
+                self.save_state_actions[i].setText(f"Save to slot {i+1} - Empty")
+                self.load_state_actions[i].setText(f"Load from slot {i+1} - Empty")
+
+            return
+
+        save_state_path = self.root_directory / "save_states"
+
+        for i in range(0, 5):
+            save_state = Path(save_state_path / f"{self.game_title}.s{i+1}")
+
+            if save_state.is_file():
+                last_modified = datetime.datetime.fromtimestamp(save_state.stat().st_mtime)
+                last_modified_str = last_modified.strftime("%m/%d/%Y %I:%M:%S %p")
+                self.save_state_actions[i].setText(f"Save to slot {i+1} - {last_modified_str}")
+                self.load_state_actions[i].setText(f"Load from slot {i+1} - {last_modified_str}")
+            else:
+                self.save_state_actions[i].setText(f"Save to slot {i+1} - Empty")
+                self.load_state_actions[i].setText(f"Load from slot {i+1} - Empty")
+
+
+    ########################################################################
+    #     __  __                                 _   _                     #
+    #    |  \/  |                      /\       | | (_)                    #
+    #    | \  / | ___ _ __  _   _     /  \   ___| |_ _  ___  _ __  ___     #
+    #    | |\/| |/ _ \ '_ \| | | |   / /\ \ / __| __| |/ _ \| '_ \/ __|    #
+    #    | |  | |  __/ | | | |_| |  / ____ \ (__| |_| | (_) | | | \__ \    #
+    #    |_|  |_|\___|_| |_|\__,_| /_/    \_\___|\__|_|\___/|_| |_|___/    #
+    #                                                                      #
+    ########################################################################
 
     def _load_rom_trigger(self):
+        """Open a file dialog for user to select a Game Boy ROM file to load."""
         file_dialog = QtWidgets.QFileDialog(self)
         file_dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
         rom_path, _ = file_dialog.getOpenFileName(self,
                                                   "Load ROM...",
-                                                  str(self.file_dialog_path.absolute()),
+                                                  str(self.last_rom_directory.absolute()),
                                                   "Game Boy files (*.gb *.gbc)")
 
         if rom_path:
+            self.last_rom_directory = Path(rom_path).parents[0]
             sdl_audio.lock_audio(self.audio_device_id)
-            game_boy.insert_cartridge(rom_path)
-            game_boy.power_on()
+            self.game_title = game_boy.insert_cartridge(rom_path)
+
+            if self.game_title:
+                self.game_loaded = True
+                game_boy.power_on()
+            else:
+                self.game_loaded = False
+                self.game_title = "Game Boy"
+
+            self._refresh_save_state_menus()
             sdl_audio.unlock_audio(self.audio_device_id)
 
     def _pause_emulation_trigger(self):
+        """Halt execution of the emulator until pause button is clicked again."""
         if self.sender().isChecked():
             sdl_audio.lock_audio(self.audio_device_id)
         else:
             sdl_audio.unlock_audio(self.audio_device_id)
 
+    def _create_save_state_trigger(self):
+        """Create a save state and store to the selected slot."""
+        if not self.game_loaded:
+            return
+
+        save_state_path = self.root_directory / "save_states"
+        save_state_path.mkdir(parents=True, exist_ok=True)
+        index = self.sender().text()[13]
+        save_state_path = save_state_path / f"{self.game_title}.s{index}"
+        game_boy.create_save_state(save_state_path)
+        self.save_state_timer.start()
+
+    def _load_save_state_trigger(self):
+        """Load a save state from the selected slot."""
+        if not self.game_loaded:
+            return
+
+        save_state_path = self.root_directory / "save_states"
+        index = self.sender().text()[15]
+        save_state_path = save_state_path / f"{self.game_title}.s{index}"
+        game_boy.load_save_state(save_state_path)
+
+    def _game_speed_trigger(self):
+        """Change the Game Boy clock multiplier to speed up or slow down gameplay."""
+        self.last_checked_game_speed.setChecked(False)
+        self.last_checked_game_speed = self.sender()
+
+        sdl_audio.lock_audio(self.audio_device_id)
+        game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])
+        sdl_audio.unlock_audio(self.audio_device_id)
+
     def _reset_trigger(self):
+        """Restart the Game Boy."""
         game_boy.power_on()
 
     def _window_size_trigger(self):
+        """Set the size of the screen to the selected option."""
         self.last_checked_window_size.setChecked(False)
         self.last_checked_window_size = self.sender()
         self.window_scale = self.window_sizes[self.sender().text()]
 
         sdl_audio.lock_audio(self.audio_device_id)
         self._resize_window()
-        sdl_audio.unlock_audio(self.audio_device_id)
-
-    def _game_speed_trigger(self):
-        self.last_checked_game_speed.setChecked(False)
-        self.last_checked_game_speed = self.sender()
-
-        sdl_audio.lock_audio(self.audio_device_id)
-        game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])
         sdl_audio.unlock_audio(self.audio_device_id)
 
 
