@@ -195,8 +195,8 @@ void GameBoy::PowerOn()
     lastPendingInterrupt_ = 0x00;
     prevStatState_ = false;
 
-    apu_.PowerOn(runningBootRom_);
-    cpu_.Reset(runningBootRom_);
+    apu_.PowerOn(!runningBootRom_);
+    cpu_.PowerOn(!runningBootRom_);
     ppu_.PowerOn(!runningBootRom_);
 }
 

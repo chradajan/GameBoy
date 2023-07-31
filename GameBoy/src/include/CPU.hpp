@@ -25,6 +25,10 @@ public:
         std::function<void()> acknowledgeInterruptFunction,
         std::function<std::pair<bool, bool>(bool)> stopFunction);
 
+    /// @brief Reset the state of the CPU to as if it just started.
+    /// @param[in] skipBootRom Whether the CPU is being powered on to start running the boot ROM.
+    void PowerOn(bool skipBootRom);
+
     /// @brief Default CPU destructor.
     ~CPU() = default;
 
@@ -37,10 +41,6 @@ public:
     void ExitHalt() { halted_ = false; }
 
     bool InBetweenInstructions() const { return mCycle_ == 0; };
-
-    /// @brief Reset the state of the CPU to as if it just started.
-    /// @param bootRom Used to decided where to set PC.
-    void Reset(bool bootRom);
 
     bool IsSerializable() const;
     void Serialize(std::ofstream& out);

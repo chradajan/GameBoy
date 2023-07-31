@@ -15,6 +15,32 @@ CPU::CPU(std::function<uint8_t(uint16_t)> readFunction,
 {
 }
 
+void CPU::PowerOn(bool const skipBootRom)
+{
+    reg_.Reset();
+    opCode_ = 0x00;
+    mCycle_ = 0x00;
+    prefixedOpCode_ = false;
+    instruction_ = [](){};
+    cmdData8_ = 0x00;
+    cmdData16_ = 0x00;
+
+    interruptsEnabled_ = false;
+    setInterruptsEnabled_ = false;
+    setInterruptsDisabled_ = false;
+    interruptBeingProcessed_ = false;
+    interruptCountdown_ = 0x00;
+
+    halted_ = false;
+    haltBug_ = false;
+    numPendingInterrupts_ = 0x00;
+
+    if (!skipBootRom)
+    {
+        reg_.PC = 0x0000;
+    }
+}
+
 void CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
 {
     uint16_t interruptAddr = 0x0000;
@@ -79,32 +105,6 @@ void CPU::Clock(std::optional<std::pair<uint16_t, uint8_t>> interruptInfo)
     }
 
     return;
-}
-
-void CPU::Reset(bool const bootRom)
-{
-    reg_.Reset();
-    opCode_ = 0x00;
-    mCycle_ = 0x00;
-    prefixedOpCode_ = false;
-    instruction_ = [](){};
-    cmdData8_ = 0x00;
-    cmdData16_ = 0x00;
-
-    interruptsEnabled_ = false;
-    setInterruptsEnabled_ = false;
-    setInterruptsDisabled_ = false;
-    interruptBeingProcessed_ = false;
-    interruptCountdown_ = 0x00;
-
-    halted_ = false;
-    haltBug_ = false;
-    numPendingInterrupts_ = 0x00;
-
-    if (bootRom)
-    {
-        reg_.PC = 0x0000;
-    }
 }
 
 bool CPU::IsSerializable() const
