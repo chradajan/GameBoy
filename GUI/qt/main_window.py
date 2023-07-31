@@ -1,6 +1,7 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
 import datetime
+from qt.options_window import PreferencesWindow
 from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -16,6 +17,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.game_speed = 1.0
         self.root_directory = root_directory
         self.last_rom_directory = root_directory
+
+        # Options menu
+        self.preferences_window = None
 
         # Window information
         self.window_scale = 4
@@ -54,7 +58,6 @@ class MainWindow(QtWidgets.QMainWindow):
         file = self.menuBar().addMenu("File")
         emulation = self.menuBar().addMenu("Emulation")
         options = self.menuBar().addMenu("Options")
-        debug = self.menuBar().addMenu("Debug")
 
         # File menu
         file_loadrom_action = QtGui.QAction("Load ROM...", self)
@@ -119,8 +122,11 @@ class MainWindow(QtWidgets.QMainWindow):
             action.triggered.connect(self._window_size_trigger)
             options_windowsize.addAction(action)
 
-        # Debug menu
-        debug_soundchannels = debug.addMenu("Sound channels")
+        options.addSeparator()
+
+        preferences_action = QtGui.QAction("Preferences", self)
+        preferences_action.triggered.connect(self._preferences_window_trigger)
+        options.addAction(preferences_action)
 
         # Create LCD output label
         self.lcd = QtWidgets.QLabel(self)
@@ -287,6 +293,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self._resize_window()
         sdl_audio.unlock_audio(self.audio_device_id)
 
+    def _preferences_window_trigger(self):
+        "Open the preferences window."
+        if self.preferences_window is None:
+            self.preferences_window = PreferencesWindow()
+
+        self.preferences_window.show()
+
 
     ########################################
     #     ______                           #
@@ -308,6 +321,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def keyReleaseEvent(self, event: QtGui.QKeyEvent | None):
         if event is None:
             return
+
         self.keys_pressed.discard(event.key())
         super().keyReleaseEvent(event)
 
+    def closeEvent(self, event: QtGui.QCloseEvent | None):
+        if event is None:
+            return
+
+        super().closeEvent(event)
+        QtWidgets.QApplication.quit()
