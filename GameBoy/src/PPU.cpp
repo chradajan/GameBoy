@@ -28,7 +28,6 @@ void PPU::PowerOn(bool const skipBootRom)
     frameReady_ = false;
     vBlank_ = false;
     wyCondition_ = false;
-    useDmgColors_ = false;
     oamDmaInProgress_ = false;
 
     disabledY_ = 0;
