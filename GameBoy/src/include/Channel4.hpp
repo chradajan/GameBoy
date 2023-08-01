@@ -26,6 +26,7 @@ private:
     bool SoundLengthTimerEnabled() const { return NR44_ & 0x40; }
     bool ShortMode() const { return NR43_ & 0x08; }
     void SetLsfrDivider();
+    void SetNR42Data();
 
     // Registers
     uint8_t NR41_;

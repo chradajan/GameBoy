@@ -121,10 +121,11 @@ void Channel4::Write(uint8_t ioAddr, uint8_t data)
             break;
         case 0x21:  // NR42
             NR42_ = data;
+            SetNR42Data();
             break;
         case 0x22:  // NR43
             NR43_ = data;
-            // SetLsfrDivider();
+            SetLsfrDivider();
             break;
         case 0x23:  // NR44
             NR44_ = data;
@@ -145,11 +146,7 @@ void Channel4::Trigger()
     SetLengthCounter();
     lengthTimerExpired_ = false;
 
-    currentVolume_ = (NR42_ & 0xF0) >> 4;
-    increaseVolume_ = NR42_ & 0x08;
-    volumeSweepPace_ = NR42_ & 0x07;
-    volumeSweepDivider_ = 0;
-    dacEnabled_ = (NR42_ & 0xF8) != 0x00;
+    SetNR42Data();
 
     SetLsfrDivider();
     LFSR_ = 0xFFFF;
@@ -175,4 +172,13 @@ void Channel4::SetLsfrDivider()
     }
 
     lsfrCounter_ = 0;
+}
+
+void Channel4::SetNR42Data()
+{
+    currentVolume_ = (NR42_ & 0xF0) >> 4;
+    increaseVolume_ = NR42_ & 0x08;
+    volumeSweepPace_ = NR42_ & 0x07;
+    volumeSweepDivider_ = 0;
+    dacEnabled_ = (NR42_ & 0xF8) != 0x00;
 }
