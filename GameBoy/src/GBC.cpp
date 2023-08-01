@@ -8,8 +8,8 @@
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
 void (*frameUpdateCallback)() = nullptr;
 
-constexpr int SAMPLE_RATE = 44100;
-constexpr float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
+int SAMPLE_RATE = 44100;
+float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 constexpr int CPU_CLOCK_FREQUENCY = 1048576;
 int EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY;
 float CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
@@ -82,8 +82,8 @@ void CollectAudioSamples(float* buffer, int numSamples)
 
         float left, right;
         gb->GetAudioSample(&left, &right);
-        buffer[i] = left * 0.15;
-        buffer[i + 1] = right * 0.15;
+        buffer[i] = left;
+        buffer[i + 1] = right;
     }
 }
 
@@ -115,4 +115,25 @@ void LoadSaveState(char* saveStatePath)
 {
     loadSaveState = true;
     saveStatePathFS = saveStatePath;
+}
+
+void EnableSoundChannel(int const channel, bool const enabled)
+{
+    gb->EnableSoundChannel(channel, enabled);
+}
+
+void SetMonoAudio(bool const monoAudio)
+{
+    gb->SetMonoAudio(monoAudio);
+}
+
+void SetVolume(float const volume)
+{
+    gb->SetVolume(volume);
+}
+
+void SetSampleRate(int const sampleRate)
+{
+    SAMPLE_RATE = sampleRate;
+    SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 }

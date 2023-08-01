@@ -54,4 +54,21 @@ void CreateSaveState(char* saveStatePath);
 /// @brief Load a save state from the specified file.
 /// @param[in] saveStatePath Path to save state file to load.
 void LoadSaveState(char* saveStatePath);
+
+/// @brief Set whether a specific sound channel should be mixed in to the APU output.
+/// @param channel Channel number to set (1-4).
+/// @param enabled True to enable channel, false to disable it.
+void EnableSoundChannel(int channel, bool enabled);
+
+/// @brief Choose whether to output
+/// @param monoAudio True to use mono, false to use stereo.
+void SetMonoAudio(bool monoAudio);
+
+/// @brief Set the volume of the APU output.
+/// @param volume Volume of output (between 0.0 and 1.0).
+void SetVolume(float volume);
+
+/// @brief  Set the sampling frequency.
+/// @param sampleRate Sampling frequency in Hz.
+void SetSampleRate(int sampleRate);
 }

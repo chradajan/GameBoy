@@ -25,9 +25,33 @@ public:
     void Serialize(std::ofstream& out);
     void Deserialize(std::ifstream& in);
 
+    /// @brief Set whether a specific sound channel should be mixed in to the APU output.
+    /// @param channel Channel number to set (1-4).
+    /// @param enabled True to enable channel, false to disable it.
+    void EnableSoundChannel(int channel, bool enabled);
+
+    /// @brief Choose whether to output
+    /// @param monoAudio True to use mono, false to use stereo.
+    void SetMonoAudio(bool monoAudio) { monoAudio_ = monoAudio; }
+
+    /// @brief Set the volume of the APU output.
+    /// @param volume Volume of output (between 0.0 and 1.0).
+    void SetVolume(float volume) { volume_ = volume; }
+
 private:
     float HPF(float input);
     void AdvanceFrameSequencer();
+
+    // Overwrites
+    bool hasBeenPoweredOn_;
+
+    bool monoAudio_;
+    float volume_;
+
+    bool channel1Enabled_;
+    bool channel2Enabled_;
+    bool channel3Enabled_;
+    bool channel4Enabled_;
 
     // State
     bool apuEnabled_;

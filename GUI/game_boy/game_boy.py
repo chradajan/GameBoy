@@ -41,6 +41,10 @@ GAME_BOY.SetInputs.argtypes = [
 GAME_BOY.SetClockMultiplier.argtypes = [ctypes.c_float]
 GAME_BOY.CreateSaveState.argtypes = [ctypes.POINTER(ctypes.c_char)]
 GAME_BOY.LoadSaveState.argtypes = [ctypes.POINTER(ctypes.c_char)]
+GAME_BOY.EnableSoundChannel.argtypes = [ctypes.c_int, ctypes.c_bool]
+GAME_BOY.SetMonoAudio.argtypes = [ctypes.c_bool]
+GAME_BOY.SetVolume.argtypes = [ctypes.c_float]
+GAME_BOY.SetSampleRate.argtypes = [ctypes.c_int]
 
 @dataclass
 class JoyPad:
@@ -184,3 +188,36 @@ def load_save_state(save_state_path: Path):
     """
     save_state_path_buffer = ctypes.create_string_buffer(str.encode(str(save_state_path.absolute())))
     GAME_BOY.LoadSaveState(save_state_path_buffer)
+
+def enable_sound_channel(channel: int, enabled: bool):
+    """Toggle a specific sound channel.
+
+    Args:
+        channel: Channel number to enable/disable (between 1-4).
+        enabled: True to enable channel, False to disable it.
+    """
+    GAME_BOY.EnableSoundChannel(ctypes.c_int(channel), ctypes.c_bool(enabled))
+
+def set_mono_audio(mono_audio: bool):
+    """Toggle between mono and stereo audio.
+
+    Args:
+        mono_audio: True to use mono audio, False for stereo.
+    """
+    GAME_BOY.SetMonoAudio(ctypes.c_bool(mono_audio))
+
+def set_volume(volume: float):
+    """Set the volume output level.
+
+    Args:
+        volume: Output level (between 0.0 and 1.0).
+    """
+    GAME_BOY.SetVolume(ctypes.c_float(volume))
+
+def set_sample_rate(rate: int):
+    """Set the sampling frequency used by SDL.
+
+    Args:
+        rate: Sample frequency in Hz.
+    """
+    GAME_BOY.SetSampleRate(ctypes.c_int(rate))

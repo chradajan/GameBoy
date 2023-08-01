@@ -1,4 +1,5 @@
 import game_boy.game_boy as game_boy
+import sdl.sdl_audio as sdl_audio
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 class PreferencesWindow(QtWidgets.QTabWidget):
@@ -68,6 +69,7 @@ class PreferencesWindow(QtWidgets.QTabWidget):
         self.volume_slider.setMinimum(0)
         self.volume_slider.setMaximum(100)
         self.volume_slider.setSingleStep(1)
+        self.volume_slider.setPageStep(0)
         self.volume_slider.setValue(self.saved_volume)
         self.volume_slider.sliderReleased.connect(self._set_volume)
         volume_layout.addWidget(self.volume_slider)
@@ -78,33 +80,28 @@ class PreferencesWindow(QtWidgets.QTabWidget):
         self.sound_tab.setLayout(main_layout)
 
     def _toggle_sound_channel(self):
+        channel = int(self.sender().text()[-1])
         enabled = self.sender().isChecked()
-        channel = self.sender().text()[-1]
 
-        if enabled:
-            print(f"{channel} enabled")
-        else:
-            print(f"{channel} disabled")
+        game_boy.enable_sound_channel(channel, enabled)
 
     def _toggle_mute(self):
         if self.sender().isChecked():
             self.saved_volume = self.volume_slider.value()
             self.volume_slider.setValue(0)
             self.muted = True
-            print("Muted")
+            game_boy.set_volume(0.0)
         else:
             self.volume_slider.setValue(self.saved_volume)
-            print("Unmuted")
+            game_boy.set_volume(self.saved_volume / 100)
 
     def _toggle_mono_audio(self):
-        if self.sender().isChecked():
-            print("Mono")
-        else:
-            print("Stereo")
+        game_boy.set_mono_audio(self.sender().isChecked())
 
     def _set_sample_rate(self):
         sample_rate = int(self.sender().currentText())
-        print(sample_rate)
+        game_boy.set_sample_rate(sample_rate)
+        sdl_audio.update_sample_rate(sample_rate)
 
     def _set_volume(self):
         new_volume = self.sender().value()
@@ -112,4 +109,4 @@ class PreferencesWindow(QtWidgets.QTabWidget):
         if self.muted and new_volume > 0:
             self.mute_box.setChecked(False)
 
-        print(new_volume)
+        game_boy.set_volume(new_volume / 100)

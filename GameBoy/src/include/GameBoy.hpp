@@ -155,6 +155,19 @@ public:
     void Serialize(std::ofstream& out);
     void Deserialize(std::ifstream& in);
 
+    /// @brief Set whether a specific sound channel should be mixed in to the APU output.
+    /// @param channel Channel number to set (1-4).
+    /// @param enabled True to enable channel, false to disable it.
+    void EnableSoundChannel(int channel, bool enabled) { apu_.EnableSoundChannel(channel, enabled); }
+
+    /// @brief Choose whether to output
+    /// @param monoAudio True to use mono, false to use stereo.
+    void SetMonoAudio(bool monoAudio) { apu_.SetMonoAudio(monoAudio); }
+
+    /// @brief Set the volume of the APU output.
+    /// @param volume Volume of output (between 0.0 and 1.0).
+    void SetVolume(float volume) { apu_.SetVolume(volume); }
+
 private:
     /// @brief Execute the specified number of machine cycles.
     /// @param numCycles Number of machine cycles to execute.

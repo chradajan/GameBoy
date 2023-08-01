@@ -1,7 +1,7 @@
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
 import datetime
-from qt.options_window import PreferencesWindow
+from qt.preferences_window import PreferencesWindow
 from pathlib import Path
 from PyQt6 import QtCore, QtGui, QtWidgets
 
@@ -12,7 +12,7 @@ class MainWindow(QtWidgets.QMainWindow):
     window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
     game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
 
-    def __init__(self, audio_device_id: int, root_directory: Path):
+    def __init__(self, root_directory: Path):
         super().__init__()
         self.game_speed = 1.0
         self.root_directory = root_directory
@@ -27,7 +27,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.game_loaded = False
 
         # I/O
-        self.audio_device_id = audio_device_id
         self.keys_pressed = set()
 
         # GUI components
@@ -135,7 +134,6 @@ class MainWindow(QtWidgets.QMainWindow):
         # Update window size
         self._resize_window()
 
-
     def _update_joypad(self):
         joypad = game_boy.JoyPad(
             QtCore.Qt.Key.Key_S in self.keys_pressed,
@@ -228,7 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         if rom_path:
             self.last_rom_directory = Path(rom_path).parents[0]
-            sdl_audio.lock_audio(self.audio_device_id)
+            sdl_audio.lock_audio()
             self.game_title = game_boy.insert_cartridge(rom_path)
 
             if self.game_title:
@@ -239,14 +237,14 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.game_title = "Game Boy"
 
             self._refresh_save_state_menus()
-            sdl_audio.unlock_audio(self.audio_device_id)
+            sdl_audio.unlock_audio()
 
     def _pause_emulation_trigger(self):
         """Halt execution of the emulator until pause button is clicked again."""
         if self.sender().isChecked():
-            sdl_audio.lock_audio(self.audio_device_id)
+            sdl_audio.lock_audio()
         else:
-            sdl_audio.unlock_audio(self.audio_device_id)
+            sdl_audio.unlock_audio()
 
     def _create_save_state_trigger(self):
         """Create a save state and store to the selected slot."""
@@ -275,9 +273,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.last_checked_game_speed.setChecked(False)
         self.last_checked_game_speed = self.sender()
 
-        sdl_audio.lock_audio(self.audio_device_id)
+        sdl_audio.lock_audio()
         game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])
-        sdl_audio.unlock_audio(self.audio_device_id)
+        sdl_audio.unlock_audio()
 
     def _reset_trigger(self):
         """Restart the Game Boy."""
@@ -289,9 +287,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.last_checked_window_size = self.sender()
         self.window_scale = self.window_sizes[self.sender().text()]
 
-        sdl_audio.lock_audio(self.audio_device_id)
+        sdl_audio.lock_audio()
         self._resize_window()
-        sdl_audio.unlock_audio(self.audio_device_id)
+        sdl_audio.unlock_audio()
 
     def _preferences_window_trigger(self):
         "Open the preferences window."

@@ -2,6 +2,16 @@
 #include <cstdint>
 #include <iostream>
 
+void GameBoy::Clock(int const numCycles)
+{
+    if (!cartridge_ && !runningBootRom_)
+    {
+        return;
+    }
+
+    RunMCycles(numCycles);
+}
+
 void GameBoy::RunMCycles(int const numCycles)
 {
     for (int i = 0; i < numCycles; ++i)

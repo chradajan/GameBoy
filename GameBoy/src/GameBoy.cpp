@@ -272,16 +272,6 @@ void GameBoy::Deserialize(std::ifstream& in)
     ppu_.Deserialize(in);
 }
 
-void GameBoy::Clock(int const numCycles)
-{
-    if (!cartridge_ && !runningBootRom_)
-    {
-        return;
-    }
-
-    RunMCycles(numCycles);
-}
-
 void GameBoy::UpdateJOYP(uint8_t data)
 {
     uint_fast8_t const prevState = ioReg_[IO::JOYP] & 0x0F;
