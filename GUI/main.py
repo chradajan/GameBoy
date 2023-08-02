@@ -1,11 +1,13 @@
-import game_boy.game_boy as game_boy
-import sdl.sdl_audio as sdl_audio
-from qt.main_window import MainWindow
-
 import ctypes
 import sys
 from pathlib import Path
+
 from PyQt6 import QtCore, QtWidgets
+
+import config.config as config
+import game_boy.game_boy as game_boy
+import sdl.sdl_audio as sdl_audio
+from qt.main_window import MainWindow
 
 MAIN_WINDOW: MainWindow
 
@@ -27,6 +29,7 @@ def main() -> int:
     game_boy.initialize_game_boy(main_path, refresh_screen_callback)
     game_boy.set_sample_rate(44100)
     sdl_audio.initialize_sdl_audio(44100)
+    config.load_config(main_path)
 
     app = QtWidgets.QApplication([])
     MAIN_WINDOW = MainWindow(main_path)

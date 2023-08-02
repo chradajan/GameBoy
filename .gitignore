@@ -7,3 +7,4 @@ GameBoy/lib/
 roms/
 saves/
 save_states/
+config.ini
