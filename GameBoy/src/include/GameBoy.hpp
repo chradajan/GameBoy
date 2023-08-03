@@ -168,6 +168,24 @@ public:
     /// @param volume Volume of output (between 0.0 and 1.0).
     void SetVolume(float volume) { apu_.SetVolume(volume); }
 
+    /// @brief Use custom DMG palettes when playing GB games. Toggle through GUI.
+    /// @param useDmgColors True if DMG colors should be used.
+    void PreferDmgColors(bool useDmgColors) { ppu_.PreferDmgColors(useDmgColors); }
+
+    /// @brief Determine whether background, window, obp0, and obp1 should use the same palette or individual ones.
+    /// @param individualPalettes True if each pixel type should use its own palette.
+    void UseIndividualPalettes(bool individualPalettes) { ppu_.UseIndividualPalettes(individualPalettes); }
+
+    /// @brief Specify colors in one of the custom DMG palettes.
+    /// @param index Index of palette to update.
+    ///                 0 = Universal palette
+    ///                 1 = Background
+    ///                 2 = Window
+    ///                 3 = OBP0
+    ///                 4 = OBP1
+    /// @param data Pointer to RGB data (12 0-255 values)
+    void SetCustomPalette(uint8_t index, uint8_t* data) { ppu_.SetCustomPalette(index, data); }
+
 private:
     /// @brief Execute the specified number of machine cycles.
     /// @param numCycles Number of machine cycles to execute.

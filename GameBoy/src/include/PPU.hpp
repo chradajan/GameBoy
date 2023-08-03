@@ -50,7 +50,30 @@ public:
     uint8_t GetMode() const { return STAT_ & 0x03; }
 
     void SetFrameBuffer(uint8_t* frameBuffer) { frameBuffer_ = frameBuffer; }
-    void SetDmgColorMode(bool useDmgColors) { useDmgColors_ = useDmgColors; }
+
+    // DMG color control
+
+    /// @brief Force PPU to render pixels with DMG palettes when skipping boot ROM.
+    /// @param useDmgColors True if DMG colors should be used.
+    void ForceDmgColors(bool useDmgColors) { forceDmgColors_ = useDmgColors; }
+
+    /// @brief Use custom DMG palettes when playing GB games. Toggle through GUI.
+    /// @param useDmgColors True if DMG colors should be used.
+    void PreferDmgColors(bool useDmgColors) { preferDmgColors_ = useDmgColors; }
+
+    /// @brief Determine whether background, window, obp0, and obp1 should use the same palette or individual ones.
+    /// @param individualPalettes True if each pixel type should use its own palette.
+    void UseIndividualPalettes(bool individualPalettes) { useIndividualPalettes_ = individualPalettes; }
+
+    /// @brief Specify colors in one of the custom DMG palettes.
+    /// @param index Index of palette to update.
+    ///                 0 = Universal palette
+    ///                 1 = Background
+    ///                 2 = Window
+    ///                 3 = OBP0
+    ///                 4 = OBP1
+    /// @param data Pointer to RGB data (12 0-255 values)
+    void SetCustomPalette(uint8_t index, uint8_t* data);
 
     // Register access
     bool LCDEnabled() const { return LCDC_ & 0x80; }
@@ -114,11 +137,16 @@ private:
         }
     }
 
+    // GUI overrides
+    bool preferDmgColors_;
+    bool useIndividualPalettes_;
+
     // Disabled state
     void DisabledClock();
 
     // Rendering
     void RenderPixel(Pixel pixel);
+    void RenderDmgPixel(Pixel pixel);
     void OamScan();
 
     // Data from bus
@@ -133,7 +161,7 @@ private:
     bool frameReady_;
     bool vBlank_;
     bool wyCondition_;
-    bool useDmgColors_;
+    bool forceDmgColors_;
     bool oamDmaInProgress_;
 
     // Disabled state

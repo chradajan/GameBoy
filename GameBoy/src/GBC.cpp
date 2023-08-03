@@ -137,3 +137,18 @@ void SetSampleRate(int const sampleRate)
     SAMPLE_RATE = sampleRate;
     SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
 }
+
+void PreferDmgColors(bool useDmgColors)
+{
+    gb->PreferDmgColors(useDmgColors);
+}
+
+void UseIndividualPalettes(bool individualPalettes)
+{
+    gb->UseIndividualPalettes(individualPalettes);
+}
+
+void SetCustomPalette(uint8_t index, uint8_t* data)
+{
+    gb->SetCustomPalette(index, data);
+}

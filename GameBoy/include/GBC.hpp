@@ -71,4 +71,22 @@ void SetVolume(float volume);
 /// @brief  Set the sampling frequency.
 /// @param sampleRate Sampling frequency in Hz.
 void SetSampleRate(int sampleRate);
+
+/// @brief Use custom DMG palettes when playing GB games.
+/// @param useDmgColors True if DMG colors should be used.
+void PreferDmgColors(bool useDmgColors);
+
+/// @brief Determine whether background, window, obp0, and obp1 should use the same palette or individual ones.
+/// @param individualPalettes True if each pixel type should use its own palette.
+void UseIndividualPalettes(bool individualPalettes);
+
+/// @brief Specify colors in one of the custom DMG palettes.
+/// @param index Index of palette to update.
+///                 0 = Universal palette
+///                 1 = Background
+///                 2 = Window
+///                 3 = OBP0
+///                 4 = OBP1
+/// @param data Pointer to RGB data (12 0-255 values)
+void SetCustomPalette(uint8_t index, uint8_t* data);
 }

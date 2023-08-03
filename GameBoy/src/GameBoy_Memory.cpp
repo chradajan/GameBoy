@@ -1,5 +1,4 @@
 #include <GameBoy.hpp>
-#include <iostream>
 
 uint8_t GameBoy::Read(uint16_t addr)
 {

@@ -382,6 +382,8 @@ void PixelFIFO::ClockBackgroundFetcher()
 
 void PixelFIFO::PushBackgroundPixels()
 {
+    auto src = fetchingWindow_ ? PixelSource::WINDOW : PixelSource::BACKGROUND;
+
     for (uint_fast8_t i = 0; i < 8; ++i)
     {
         uint_fast8_t color = 0x00;
@@ -399,7 +401,7 @@ void PixelFIFO::PushBackgroundPixels()
             backgroundFetcher_.tileDataLow <<= 1;
         }
 
-        backgroundFIFO_.push_back({color, backgroundFetcher_.palette, 0x00, backgroundFetcher_.priority, PixelSource::BACKGROUND});
+        backgroundFIFO_.push_back({color, backgroundFetcher_.palette, 0x00, backgroundFetcher_.priority, src});
     }
 }
 

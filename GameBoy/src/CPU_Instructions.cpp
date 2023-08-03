@@ -1,7 +1,5 @@
 #include <CPU.hpp>
 #include <cstdint>
-#include <iomanip>
-#include <iostream>
 
 void CPU::InterruptHandler(uint16_t addr)
 {

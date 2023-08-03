@@ -42,7 +42,7 @@ private:
     float HPF(float input);
     void AdvanceFrameSequencer();
 
-    // Overwrites
+    // GUI overrides
     bool hasBeenPoweredOn_;
 
     bool monoAudio_;

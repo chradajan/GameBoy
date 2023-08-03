@@ -31,6 +31,7 @@ enum class PixelSource
     BLANK = 0,
     BACKGROUND,
     SPRITE,
+    WINDOW,
 };
 
 struct Pixel

@@ -4,7 +4,7 @@ import ctypes
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Tuple
+from typing import List
 
 WIDTH = 160
 HEIGHT = 144
@@ -45,6 +45,9 @@ GAME_BOY.EnableSoundChannel.argtypes = [ctypes.c_int, ctypes.c_bool]
 GAME_BOY.SetMonoAudio.argtypes = [ctypes.c_bool]
 GAME_BOY.SetVolume.argtypes = [ctypes.c_float]
 GAME_BOY.SetSampleRate.argtypes = [ctypes.c_int]
+GAME_BOY.PreferDmgColors.argtypes = [ctypes.c_bool]
+GAME_BOY.UseIndividualPalettes.argtypes = [ctypes.c_bool]
+GAME_BOY.SetCustomPalette.argtypes = [ctypes.c_uint8, ctypes.POINTER(ctypes.c_uint8)]
 
 @dataclass
 class JoyPad:
@@ -114,25 +117,6 @@ def set_joypad_state(joypad: JoyPad):
         joypad: Current state of each joypad button.
     """
     GAME_BOY.SetInputs(joypad.down, joypad.up, joypad.left, joypad.right, joypad.start, joypad.select, joypad.b, joypad.a)
-
-def frame_ready() -> bool:
-    """Check if a frame is ready to display.
-
-    Returns:
-        True if the current state of the frame buffer is ready to be rendered.
-    """
-    return GAME_BOY.FrameReady()
-
-def get_audio_sample() -> Tuple[float, float]:
-    """Run the Game Boy enough cycles to gather the next audio sample from the APU.
-
-    Returns:
-        Tuple of left and right channel PCM samples.
-    """
-    left = ctypes.c_float(0.0)
-    right = ctypes.c_float(0.0)
-    GAME_BOY.GetAudioSample(ctypes.byref(left), ctypes.byref(right))
-    return (left.value, right.value)
 
 def collect_audio_samples(buffer: ctypes.POINTER(ctypes.c_float), len: int):
     """Run the Game Boy and fill the buffer with audio samples.
@@ -221,3 +205,33 @@ def set_sample_rate(rate: int):
         rate: Sample frequency in Hz.
     """
     GAME_BOY.SetSampleRate(ctypes.c_int(rate))
+
+def prefer_dmg_colors(use_dmg_colors: bool):
+    """If playing a GB game, prefer to use a custom DMG palette instead of the one determined by boot ROM.
+
+    Args:
+        use_dmg_colors: If True, use custom palettes.
+    """
+    GAME_BOY.PreferDmgColors(ctypes.c_bool(use_dmg_colors))
+
+def use_individual_palettes(individual_palettes: bool):
+    """When using DMG palettes, determine whether each pixel type should share a palette or use its own custom one.
+
+    Args:
+        individual_palettes: True if pixel sources should use their own palettes, False if they should all use the same palette."""
+    GAME_BOY.UseIndividualPalettes(ctypes.c_bool(individual_palettes))
+
+def set_custom_palette(index: int, data: List[int]):
+    """Set custom DMG palette.
+
+    Args:
+        index: Index of palette to update.
+            0 = Universal palette
+            1 = Background
+            2 = Window
+            3 = OBP0
+            4 = OBP1
+        data: List of 12 0-255 rgb values that define 4 colors.
+    """
+    arr = (ctypes.c_uint8 * len(data))(*data)
+    GAME_BOY.SetCustomPalette(ctypes.c_uint8(index), arr)

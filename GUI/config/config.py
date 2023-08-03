@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Dict, List
 
 CONFIG = configparser.ConfigParser()
+CONFIG.optionxform = str
 CONFIG_PATH: Path = None
 
 def load_config(config_path: Path):
@@ -35,8 +36,11 @@ def load_config(config_path: Path):
         }
 
         CONFIG["Colors"] = {
-            "Green": "AFCB46 79AA6D 226F5F 082955",
-            "Grey":  "E8E8E8 A0A0A0 585858 101010",
+            "Green": "afcb46 79aa6d 226f5f 082955",
+            "Grey":  "e8e8e8 a0a0a0 585858 101010",
+            "Yellow": "f8f078 b0a848 686830 202010",
+            "Red": "ffc0c0 ff6060 c00000 600000",
+            "Blue": "c0c0ff 5f60ff 0000c0 000060",
         }
 
         save_config()

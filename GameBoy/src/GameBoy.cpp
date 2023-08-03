@@ -142,13 +142,13 @@ void GameBoy::PowerOn()
     {
         runningBootRom_ = false;
         cgbMode_ = cgbCartridge_;
-        ppu_.SetDmgColorMode(true);
+        ppu_.ForceDmgColors(true);
     }
     else
     {
         bootROM.read(reinterpret_cast<char*>(BOOT_ROM.data()), BOOT_ROM.size());
         runningBootRom_ = true;
-        ppu_.SetDmgColorMode(false);
+        ppu_.ForceDmgColors(false);
     }
 
     for (auto& bank : WRAM_)

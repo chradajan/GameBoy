@@ -3,15 +3,13 @@ from typing import List
 from PyQt6 import QtCore, QtWidgets
 
 import config.config as config
+import game_boy.game_boy as game_boy
 
 class ColorTab(QtWidgets.QWidget):
     def __init__(self, parent:QtWidgets.QWidget):
         super().__init__(parent)
 
-        self.bg_select = None
-        self.win_select = None
-        self.obp0_select = None
-        self.obp1_select = None
+        self.drop_downs: List[QtWidgets.QComboBox] = []
 
         self.color_texts: List[QtWidgets.QLineEdit] = []
         self.color_sliders: List[QtWidgets.QSlider] = []
@@ -31,51 +29,29 @@ class ColorTab(QtWidgets.QWidget):
         main_layout = QtWidgets.QHBoxLayout()
         color_schemes = config.get_color_schemes()
         color_scheme_names = [scheme for scheme in color_schemes.keys()]
-        self.current_scheme = color_schemes["green"]
+        self.current_scheme = color_schemes["Green"]
 
         # Palette selection
         palette_selection = QtWidgets.QGroupBox("Palette Selection")
         palette_selection_layout = QtWidgets.QVBoxLayout()
 
-        overwrite_box = QtWidgets.QCheckBox("Use custom colors")
-        overwrite_box.toggled.connect(self._custom_colors_toggle)
-        palette_selection_layout.addWidget(overwrite_box)
+        custom_colors_box = QtWidgets.QCheckBox("Use custom colors")
+        custom_colors_box.toggled.connect(self._custom_colors_toggle)
+        palette_selection_layout.addWidget(custom_colors_box)
 
-        sync_box = QtWidgets.QCheckBox("Singular palette")
-        sync_box.toggled.connect(self._sync_box_toggle)
-        palette_selection_layout.addWidget(sync_box)
+        universal_palette_box = QtWidgets.QCheckBox("Universal palette")
+        universal_palette_box.setChecked(True)
+        universal_palette_box.toggled.connect(self._use_individual_palettes)
+        palette_selection_layout.addWidget(universal_palette_box)
 
-        bg_label = QtWidgets.QLabel("BG")
-        self.bg_select = QtWidgets.QComboBox()
-        self.bg_select.addItems(color_scheme_names)
-        self.bg_select.setCurrentIndex(0)
-        self.bg_select.activated.connect(self._set_bg_palette)
-        palette_selection_layout.addWidget(bg_label)
-        palette_selection_layout.addWidget(self.bg_select)
-
-        win_label = QtWidgets.QLabel("WIN")
-        self.win_select = QtWidgets.QComboBox()
-        self.win_select.addItems(color_scheme_names)
-        self.win_select.setCurrentIndex(0)
-        self.win_select.activated.connect(self._set_win_palette)
-        palette_selection_layout.addWidget(win_label)
-        palette_selection_layout.addWidget(self.win_select)
-
-        obp0 = QtWidgets.QLabel("OBP0")
-        self.obp0_select = QtWidgets.QComboBox()
-        self.obp0_select.addItems(color_scheme_names)
-        self.obp0_select.setCurrentIndex(0)
-        self.obp0_select.activated.connect(self._set_obp0_palette)
-        palette_selection_layout.addWidget(obp0)
-        palette_selection_layout.addWidget(self.obp0_select)
-
-        obp1 = QtWidgets.QLabel("OBP1")
-        self.obp1_select = QtWidgets.QComboBox()
-        self.obp1_select.addItems(color_scheme_names)
-        self.obp1_select.setCurrentIndex(0)
-        self.obp1_select.activated.connect(self._set_obp1_palette)
-        palette_selection_layout.addWidget(obp1)
-        palette_selection_layout.addWidget(self.obp1_select)
+        for index, label_name in enumerate(["Universal", "BG", "WIN", "OBP0", "OBP1"]):
+            label = QtWidgets.QLabel(label_name)
+            self.drop_downs.append(QtWidgets.QComboBox())
+            self.drop_downs[-1].addItems(color_scheme_names)
+            self.drop_downs[-1].setCurrentIndex(0)
+            self.drop_downs[-1].activated.connect(partial(self._set_custom_palette, index))
+            palette_selection_layout.addWidget(label)
+            palette_selection_layout.addWidget(self.drop_downs[-1])
 
         palette_selection.setLayout(palette_selection_layout)
         main_layout.addWidget(palette_selection)
@@ -145,40 +121,29 @@ class ColorTab(QtWidgets.QWidget):
     def _update_dropdowns_with_color_schemes(self, key_to_add: str | None = None, index_to_remove: int | None = None):
         if key_to_add is not None:
             self.saved_palettes.addItem(key_to_add)
-            self.bg_select.addItem(key_to_add)
-            self.win_select.addItem(key_to_add)
-            self.obp0_select.addItem(key_to_add)
-            self.obp1_select.addItem(key_to_add)
+
+            for dropdown in self.drop_downs:
+                dropdown.addItem(key_to_add)
+
         elif index_to_remove is not None:
             self.saved_palettes.removeItem(index_to_remove)
-            self.bg_select.removeItem(index_to_remove)
-            self.win_select.removeItem(index_to_remove)
-            self.obp0_select.removeItem(index_to_remove)
-            self.obp1_select.removeItem(index_to_remove)
+
+            for dropdown in self.drop_downs:
+                dropdown.removeItem(index_to_remove)
 
 
     def _custom_colors_toggle(self):
-        pass
+        is_checked = self.sender().isChecked()
+        game_boy.prefer_dmg_colors(is_checked)
 
 
-    def _sync_box_toggle(self):
-        pass
+    def _use_individual_palettes(self):
+        game_boy.use_individual_palettes(not self.sender().isChecked())
 
 
-    def _set_bg_palette(self):
-        pass
-
-
-    def _set_win_palette(self):
-        pass
-
-
-    def _set_obp0_palette(self):
-        pass
-
-
-    def _set_obp1_palette(self):
-        pass
+    def _set_custom_palette(self, index: int):
+        color_schemes = config.get_color_schemes()
+        game_boy.set_custom_palette(index, color_schemes[self.sender().currentText()])
 
 
     def _create_button_clicked(self):
@@ -193,6 +158,10 @@ class ColorTab(QtWidgets.QWidget):
     def _update_button_clicked(self):
         key = self.saved_palettes.currentText()
         config.add_color_scheme(key, self.current_scheme)
+        color_schemes = config.get_color_schemes()
+
+        for index, drop_down in enumerate(self.drop_downs):
+            game_boy.set_custom_palette(index, color_schemes[drop_down.currentText()])
 
 
     def _delete_button_clicked(self):
@@ -209,7 +178,7 @@ class ColorTab(QtWidgets.QWidget):
         key = self.sender().currentText()
         index = self.sender().currentIndex()
 
-        if index < 2:
+        if index < 5:
             self.update_button.setEnabled(False)
             self.delete_button.setEnabled(False)
         else:

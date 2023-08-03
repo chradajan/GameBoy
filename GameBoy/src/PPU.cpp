@@ -2,10 +2,17 @@
 #include <array>
 #include <cstdint>
 
-std::array<std::array<uint8_t, 3>, 4> DMG_PALETTE = {{{175, 203, 70},
-                                                      {121, 170, 109},
-                                                      {34, 111, 95},
-                                                      {8, 41, 85}}};
+typedef std::array<std::array<uint8_t, 3>, 4> PaletteArray;
+
+PaletteArray DMG_PALETTE = {{{175, 203, 70},
+                             {121, 170, 109},
+                             {34, 111, 95},
+                             {8, 41, 85}}};
+
+PaletteArray BG_PALETTE = DMG_PALETTE;
+PaletteArray WIN_PALETTE = DMG_PALETTE;
+PaletteArray OBP0_PALETTE = DMG_PALETTE;
+PaletteArray OBP1_PALETTE = DMG_PALETTE;
 
 PPU::PPU(bool const& cgbMode) :
     cgbMode_(cgbMode),
@@ -366,122 +373,124 @@ void PPU::OamScan()
 
 void PPU::RenderPixel(Pixel pixel)
 {
-    if (firstEnabledFrame_)
+    if (forceDmgColors_ || preferDmgColors_)
     {
-        if (useDmgColors_)
-        {
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][2];
-        }
-        else
-        {
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
-        }
+        RenderDmgPixel(pixel);
+    }
+    else if (firstEnabledFrame_ || (pixel.src == PixelSource::BLANK))
+    {
+        frameBuffer_[framePointer_++] = 0xFF;
+        frameBuffer_[framePointer_++] = 0xFF;
+        frameBuffer_[framePointer_++] = 0xFF;
     }
     else if (cgbMode_)
     {
-        if (pixel.src == PixelSource::BLANK)
+        uint_fast8_t colorIndex = (pixel.palette * 8) + (pixel.color * 2);
+        uint_fast8_t lsb = 0x00;
+        uint_fast8_t msb = 0x00;
+
+        if ((pixel.src == PixelSource::BACKGROUND) || (pixel.src == PixelSource::WINDOW))
         {
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
+            lsb = BG_CRAM_[colorIndex];
+            msb = BG_CRAM_[colorIndex + 1];
         }
         else
         {
-            uint_fast8_t colorIndex = (pixel.palette * 8) + (pixel.color * 2);
-            uint_fast8_t lsb = 0x00;
-            uint_fast8_t msb = 0x00;
-
-            if (pixel.src == PixelSource::BACKGROUND)
-            {
-                lsb = BG_CRAM_[colorIndex];
-                msb = BG_CRAM_[colorIndex + 1];
-            }
-            else
-            {
-                lsb = OBJ_CRAM_[colorIndex];
-                msb = OBJ_CRAM_[colorIndex + 1];
-            }
-
-            uint_fast16_t rgb555 = (msb << 8) | lsb;
-
-            uint_fast8_t r = rgb555 & 0x001F;
-            frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
-
-            uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
-            frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
-
-            uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
-            frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
+            lsb = OBJ_CRAM_[colorIndex];
+            msb = OBJ_CRAM_[colorIndex + 1];
         }
+
+        uint_fast16_t rgb555 = (msb << 8) | lsb;
+
+        uint_fast8_t r = rgb555 & 0x001F;
+        frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
+
+        uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
+        frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
+
+        uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
+        frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
     }
-    else if (useDmgColors_)
+    else
     {
-        if (pixel.src == PixelSource::BLANK)
+        uint_fast8_t lsb = 0x00;
+        uint_fast8_t msb = 0x00;
+
+        if (pixel.src == PixelSource::BACKGROUND)
         {
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][0];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][1];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[0][2];
-        }
-        else if (pixel.src == PixelSource::BACKGROUND)
-        {
-            uint_fast8_t colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03);
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][0];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][1];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][2];
+            uint_fast8_t colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03) * 2;
+            lsb = BG_CRAM_[colorIndex];
+            msb = BG_CRAM_[colorIndex + 1];
         }
         else
         {
             uint_fast8_t palette = pixel.palette ? OBP1_ : OBP0_;
-            uint_fast8_t colorIndex = ((palette >> (pixel.color * 2)) & 0x03);
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][0];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][1];
-            frameBuffer_[framePointer_++] = DMG_PALETTE[colorIndex][2];
+            uint_fast8_t color = ((palette >> (pixel.color * 2)) & 0x03) * 2;
+            uint_fast8_t colorIndex = color + (pixel.palette ? 8 : 0);
+            lsb = OBJ_CRAM_[colorIndex];
+            msb = OBJ_CRAM_[colorIndex + 1];
+        }
+
+        uint_fast16_t rgb555 = (msb << 8) | lsb;
+
+        uint_fast8_t r = rgb555 & 0x001F;
+        frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
+
+        uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
+        frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
+
+        uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
+        frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
+    }
+}
+
+void PPU::RenderDmgPixel(Pixel pixel)
+{
+    PaletteArray const* palette;
+    uint_fast8_t colorIndex;
+
+    if (firstEnabledFrame_ || (pixel.src == PixelSource::BLANK))
+    {
+        palette = &DMG_PALETTE;
+        colorIndex = 0;
+    }
+    else if (useIndividualPalettes_)
+    {
+        if (pixel.src == PixelSource::BACKGROUND)
+        {
+            palette = &BG_PALETTE;
+            colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03);
+        }
+        else if (pixel.src == PixelSource::WINDOW)
+        {
+            palette = &WIN_PALETTE;
+            colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03);
+        }
+        else
+        {
+            uint_fast8_t obp = pixel.palette ? OBP1_ : OBP0_;
+            palette = pixel.palette ? &OBP1_PALETTE : &OBP0_PALETTE;
+            colorIndex = ((obp >> (pixel.color * 2)) & 0x03);
         }
     }
     else
     {
-        if (pixel.src == PixelSource::BLANK)
+        palette = &DMG_PALETTE;
+
+        if ((pixel.src == PixelSource::BACKGROUND) || (pixel.src == PixelSource::WINDOW))
         {
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
-            frameBuffer_[framePointer_++] = 0xFF;
+            colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03);
         }
         else
         {
-            uint_fast8_t lsb = 0x00;
-            uint_fast8_t msb = 0x00;
-
-            if (pixel.src == PixelSource::BACKGROUND)
-            {
-                uint_fast8_t colorIndex = ((BGP_ >> (pixel.color * 2)) & 0x03) * 2;
-                lsb = BG_CRAM_[colorIndex];
-                msb = BG_CRAM_[colorIndex + 1];
-            }
-            else
-            {
-                uint_fast8_t palette = pixel.palette ? OBP1_ : OBP0_;
-                uint_fast8_t color = ((palette >> (pixel.color * 2)) & 0x03) * 2;
-                uint_fast8_t colorIndex = color + (pixel.palette ? 8 : 0);
-                lsb = OBJ_CRAM_[colorIndex];
-                msb = OBJ_CRAM_[colorIndex + 1];
-            }
-
-            uint_fast16_t rgb555 = (msb << 8) | lsb;
-
-            uint_fast8_t r = rgb555 & 0x001F;
-            frameBuffer_[framePointer_++] = ((r << 3) | (r >> 2));
-
-            uint_fast8_t g = (rgb555 & 0x03E0) >> 5;
-            frameBuffer_[framePointer_++] = ((g << 3) | (g >> 2));
-
-            uint_fast8_t b = (rgb555 & 0x7C00) >> 10;
-            frameBuffer_[framePointer_++] = ((b << 3) | (b >> 2));
+            uint_fast8_t obp = pixel.palette ? OBP1_ : OBP0_;
+            colorIndex = ((obp >> (pixel.color * 2)) & 0x03);
         }
     }
+
+    frameBuffer_[framePointer_++] = (*palette)[colorIndex][0];
+    frameBuffer_[framePointer_++] = (*palette)[colorIndex][1];
+    frameBuffer_[framePointer_++] = (*palette)[colorIndex][2];
 }
 
 uint8_t PPU::ReadIoReg(uint8_t ioAddr) const
@@ -656,5 +665,39 @@ void PPU::WriteIoReg(uint8_t ioAddr, uint8_t data)
             break;
         default:
             break;
+    }
+}
+
+void PPU::SetCustomPalette(uint8_t index, uint8_t* data)
+{
+    PaletteArray* palette;
+
+    switch (index)
+    {
+        case 0:
+            palette = &DMG_PALETTE;
+            break;
+        case 1:
+            palette = &BG_PALETTE;
+            break;
+        case 2:
+            palette = &WIN_PALETTE;
+            break;
+        case 3:
+            palette = &OBP0_PALETTE;
+            break;
+        case 4:
+            palette = &OBP1_PALETTE;
+            break;
+        default:
+            return;
+    }
+
+    for (uint_fast8_t i = 0; i < 4; ++i)
+    {
+        for (uint_fast8_t j = 0; j < 3; ++j)
+        {
+            (*palette)[i][j] = data[i*3 + j];
+        }
     }
 }
