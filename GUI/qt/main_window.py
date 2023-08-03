@@ -1,9 +1,13 @@
+import datetime
+from functools import partial
+from pathlib import Path
+
+from PyQt6 import QtCore, QtGui, QtWidgets
+
+import config.config as config
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
-import datetime
 from qt.preferences_window import PreferencesWindow
-from pathlib import Path
-from PyQt6 import QtCore, QtGui, QtWidgets
 
 WIDTH = 160
 HEIGHT = 144
@@ -16,7 +20,9 @@ class MainWindow(QtWidgets.QMainWindow):
         super().__init__()
         self.game_speed = 1.0
         self.root_directory = root_directory
-        self.last_rom_directory = root_directory
+
+        # File menu
+        self.recents_menu: QtWidgets.QMenu = None
 
         # Options menu
         self.preferences_window = None
@@ -48,6 +54,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self._init_ui()
         self.show()
 
+
     def _init_ui(self):
         # Set window settings
         self.setWindowTitle(f"{self.game_title} (0 fps)")
@@ -62,6 +69,9 @@ class MainWindow(QtWidgets.QMainWindow):
         file_loadrom_action = QtGui.QAction("Load ROM...", self)
         file_loadrom_action.triggered.connect(self._load_rom_trigger)
         file.addAction(file_loadrom_action)
+
+        self.recents_menu = file.addMenu("Recent ROMs")
+        self._refresh_recent_roms()
 
         file_exit_action = QtGui.QAction("Exit", self)
         file_exit_action.triggered.connect(QtWidgets.QApplication.quit)
@@ -134,6 +144,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Update window size
         self._resize_window()
 
+
     def _update_joypad(self):
         joypad = game_boy.JoyPad(
             QtCore.Qt.Key.Key_S in self.keys_pressed,
@@ -168,10 +179,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.lcd.setPixmap(QtGui.QPixmap.fromImage(image).scaled(self.lcd.width(), self.lcd.height()))
 
+
     def _update_fps_counter(self):
         """Update the fps counter in the window title based on performance over the last second."""
         self.setWindowTitle(f"{self.game_title} ({self.frame_counter} fps)")
         self.frame_counter = 0
+
 
     def _resize_window(self):
         """Resize the window based on window_scale."""
@@ -180,6 +193,7 @@ class MainWindow(QtWidgets.QMainWindow):
         window_height = self.menuBar().height() + lcd_height
         self.setFixedSize(width, window_height)
         self.lcd.resize(width, lcd_height)
+
 
     def _refresh_save_state_menus(self):
         """Check if any save states exist for the current game. For any found save states, update the corresponding submenu."""
@@ -205,6 +219,21 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.load_state_actions[i].setText(f"Load from slot {i+1} - Empty")
 
 
+    def _refresh_recent_roms(self):
+        """Refresh the recent roms list with the current 10 most recent roms."""
+        self.recents_menu.clear()
+        recent_roms = config.get_recent_roms()
+
+        if not recent_roms:
+            self.recents_menu.setDisabled(True)
+        else:
+            self.recents_menu.setDisabled(False)
+
+        for rom_path in recent_roms:
+            action = QtGui.QAction(rom_path, self)
+            action.triggered.connect(partial(self._load_recent_rom_trigger, rom_path))
+            self.recents_menu.addAction(action)
+
     ########################################################################
     #     __  __                                 _   _                     #
     #    |  \/  |                      /\       | | (_)                    #
@@ -219,13 +248,16 @@ class MainWindow(QtWidgets.QMainWindow):
         """Open a file dialog for user to select a Game Boy ROM file to load."""
         file_dialog = QtWidgets.QFileDialog(self)
         file_dialog.setFileMode(QtWidgets.QFileDialog.FileMode.ExistingFile)
+        search_directory = config.get_last_rom_directory()
         rom_path, _ = file_dialog.getOpenFileName(self,
                                                   "Load ROM...",
-                                                  str(self.last_rom_directory.absolute()),
+                                                  search_directory,
                                                   "Game Boy files (*.gb *.gbc)")
 
         if rom_path:
-            self.last_rom_directory = Path(rom_path).parents[0]
+            config.update_last_rom_directory(rom_path)
+            config.add_recent_rom(rom_path)
+            self._refresh_recent_roms()
             sdl_audio.lock_audio()
             self.game_title = game_boy.insert_cartridge(rom_path)
 
@@ -239,12 +271,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self._refresh_save_state_menus()
             sdl_audio.unlock_audio()
 
+
     def _pause_emulation_trigger(self):
         """Halt execution of the emulator until pause button is clicked again."""
         if self.sender().isChecked():
             sdl_audio.lock_audio()
         else:
             sdl_audio.unlock_audio()
+
 
     def _create_save_state_trigger(self):
         """Create a save state and store to the selected slot."""
@@ -258,6 +292,7 @@ class MainWindow(QtWidgets.QMainWindow):
         game_boy.create_save_state(save_state_path)
         self.save_state_timer.start()
 
+
     def _load_save_state_trigger(self):
         """Load a save state from the selected slot."""
         if not self.game_loaded:
@@ -268,6 +303,7 @@ class MainWindow(QtWidgets.QMainWindow):
         save_state_path = save_state_path / f"{self.game_title}.s{index}"
         game_boy.load_save_state(save_state_path)
 
+
     def _game_speed_trigger(self):
         """Change the Game Boy clock multiplier to speed up or slow down gameplay."""
         self.last_checked_game_speed.setChecked(False)
@@ -277,9 +313,11 @@ class MainWindow(QtWidgets.QMainWindow):
         game_boy.change_emulation_speed(self.game_speeds[self.sender().text()])
         sdl_audio.unlock_audio()
 
+
     def _reset_trigger(self):
         """Restart the Game Boy."""
         game_boy.power_on()
+
 
     def _window_size_trigger(self):
         """Set the size of the screen to the selected option."""
@@ -291,12 +329,32 @@ class MainWindow(QtWidgets.QMainWindow):
         self._resize_window()
         sdl_audio.unlock_audio()
 
+
     def _preferences_window_trigger(self):
         "Open the preferences window."
         if self.preferences_window is None:
             self.preferences_window = PreferencesWindow()
 
         self.preferences_window.show()
+
+
+    def _load_recent_rom_trigger(self, rom_path: Path):
+        """Load a ROM from the recents menu."""
+        config.add_recent_rom(rom_path)
+        self._refresh_recent_roms()
+
+        sdl_audio.lock_audio()
+        self.game_title = game_boy.insert_cartridge(rom_path)
+
+        if self.game_title:
+            self.game_loaded = True
+            game_boy.power_on()
+        else:
+            self.game_loaded = False
+            self.game_title = "Game Boy"
+
+        self._refresh_save_state_menus()
+        sdl_audio.unlock_audio()
 
 
     ########################################
@@ -316,12 +374,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.keys_pressed.add(event.key())
         super().keyPressEvent(event)
 
+
     def keyReleaseEvent(self, event: QtGui.QKeyEvent | None):
         if event is None:
             return
 
         self.keys_pressed.discard(event.key())
         super().keyReleaseEvent(event)
+
 
     def closeEvent(self, event: QtGui.QCloseEvent | None):
         if event is None:

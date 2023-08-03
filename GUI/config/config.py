@@ -46,19 +46,63 @@ def load_config(config_path: Path):
         save_config()
 
 
-def add_recent_path(rom_path: Path):
+def get_last_rom_directory() -> str:
+    """Get the most recent directory that a ROM was loaded from.
+
+    Returns:
+        Path of directory to start search in.
+    """
+    global CONFIG
+    return CONFIG["Paths"]["last_rom_dir"]
+
+
+def update_last_rom_directory(rom_path: str):
+    """Set the most recent directory that a ROM was loaded from.
+
+    Args:
+        rom_path: Path of most recently loaded ROM file.
+    """
+    global CONFIG
+    CONFIG["Paths"]["last_rom_dir"] = rom_path
+    save_config()
+
+
+def add_recent_rom(rom_path: str):
     """Add a ROM path to the list of recently opened ROMs.
 
     Args:
         rom_path: Path to add to recents list.
     """
     global CONFIG
+    start_index = 8
+    recent_roms = get_recent_roms()
 
-    for i in range(8, -1, -1):
+    if rom_path in recent_roms:
+        start_index = recent_roms.index(rom_path) - 1
+
+    for i in range(start_index, -1, -1):
         CONFIG["Paths"][f"recent_{i+1}"] = CONFIG["Paths"][f"recent_{i}"]
 
     CONFIG["Paths"]["recent_0"] = rom_path
     save_config()
+
+
+def get_recent_roms() -> List[str]:
+    """Get a list of recently loaded ROMs.
+
+    Returns:
+        List of paths to recent ROMs.
+    """
+    global CONFIG
+    recent_roms: List[Path] = []
+
+    for i in range(10):
+        if not CONFIG["Paths"][f"recent_{i}"]:
+            break
+
+        recent_roms.append(CONFIG["Paths"][f"recent_{i}"])
+
+    return recent_roms
 
 
 def save_config():
