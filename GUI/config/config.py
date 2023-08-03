@@ -43,7 +43,56 @@ def load_config(config_path: Path):
             "Blue": "c0c0ff 5f60ff 0000c0 000060",
         }
 
+        CONFIG["DefaultControls"] = {
+            "down": 83,
+            "up": 87,
+            "left": 65,
+            "right": 68,
+            "start": 16777220,
+            "select": 16777248,
+            "b": 75,
+            "a": 76,
+        }
+
+        CONFIG["Controls"] = {
+            "down": 83,
+            "up": 87,
+            "left": 65,
+            "right": 68,
+            "start": 16777220,
+            "select": 16777248,
+            "b": 75,
+            "a": 76,
+        }
+
         save_config()
+
+
+def get_current_key_bindings() -> Dict[str, int]:
+    """Get the current keyboard bindings.
+
+    Returns:
+        Dictionary mapping joypad key name to keyboard scancode.
+    """
+    global CONFIG
+    bindings = {}
+
+    for key, scancode in CONFIG["Controls"].items():
+        bindings[key] = int(scancode)
+
+    return bindings
+
+
+def set_key_binding(key: str, scancode: int):
+    """Change a keyboard binding.
+
+    Args:
+        key: Name of joypad to update binding of.
+        scancode: Keyboard key scancode to bind.
+    """
+    global CONFIG
+    CONFIG["Controls"][key] = str(scancode)
+    save_config()
 
 
 def get_last_rom_directory() -> str:

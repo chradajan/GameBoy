@@ -146,15 +146,17 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def _update_joypad(self):
+        bindings = config.get_current_key_bindings()
+
         joypad = game_boy.JoyPad(
-            QtCore.Qt.Key.Key_S in self.keys_pressed,
-            QtCore.Qt.Key.Key_W in self.keys_pressed,
-            QtCore.Qt.Key.Key_A in self.keys_pressed,
-            QtCore.Qt.Key.Key_D in self.keys_pressed,
-            QtCore.Qt.Key.Key_Return in self.keys_pressed,
-            QtCore.Qt.Key.Key_Shift in self.keys_pressed,
-            QtCore.Qt.Key.Key_K in self.keys_pressed,
-            QtCore.Qt.Key.Key_L in self.keys_pressed,
+            bindings["down"] in self.keys_pressed,
+            bindings["up"] in self.keys_pressed,
+            bindings["left"] in self.keys_pressed,
+            bindings["right"] in self.keys_pressed,
+            bindings["start"] in self.keys_pressed,
+            bindings["select"] in self.keys_pressed,
+            bindings["b"] in self.keys_pressed,
+            bindings["a"] in self.keys_pressed,
         )
         game_boy.set_joypad_state(joypad)
 
