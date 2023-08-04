@@ -4,14 +4,18 @@ from typing import List
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import config.config as config
+import controller.controller as controller
 
-class KeyBindingDialog(QtWidgets.QMessageBox):
+GAMEPAD_INPUT: str = None
+
+class KeyboardBindingDialog(QtWidgets.QMessageBox):
     def __init__(self, joypad_button: str):
         super().__init__()
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
         self.setText("Press a key...")
+        self.setInformativeText("Press esc to cancel.")
         self.setStandardButtons(QtWidgets.QMessageBox.StandardButton.NoButton)
 
 
@@ -25,6 +29,45 @@ class KeyBindingDialog(QtWidgets.QMessageBox):
             config.set_keyboard_binding(self.joypad_button_to_bind, event.key())
 
         self.accept()
+
+
+class GetGamepadRebind(QtCore.QThread):
+    def run(self):
+        global GAMEPAD_INPUT
+        GAMEPAD_INPUT = controller.get_first_gamepad_key()
+
+
+class GamepadBindingDialog(QtWidgets.QMessageBox):
+    def __init__(self, joypad_button: str):
+        super().__init__()
+
+        self.joypad_button_to_bind = joypad_button
+        self.setWindowTitle(joypad_button.capitalize())
+        self.setText("Press a button...")
+        self.setInformativeText("Press esc to cancel.")
+        self.setStandardButtons(QtWidgets.QMessageBox.StandardButton.NoButton)
+
+        self.get_binding_thread = GetGamepadRebind()
+        self.get_binding_thread.finished.connect(self._update_binding)
+        self.get_binding_thread.start()
+
+    def _update_binding(self):
+        global GAMEPAD_INPUT
+
+        if GAMEPAD_INPUT is not None:
+            config.set_gamepad_binding(self.joypad_button_to_bind, GAMEPAD_INPUT)
+
+        self.accept()
+
+
+    def keyPressEvent(self, event: QtGui.QKeyEvent | None):
+        super().keyPressEvent(event)
+
+        if event is None:
+            return
+
+        if event.key() == QtCore.Qt.Key.Key_Escape:
+            self.accept()
 
 
 class KeyBindingsTab(QtWidgets.QWidget):
@@ -42,6 +85,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
     def _init_ui(self):
         layout = QtWidgets.QGridLayout()
         keyboard_bindings = config.get_keyboard_bindings()
+        gamepad_bindings = config.get_gamepad_bindings()
 
         keyboard_label = QtWidgets.QLabel("Keyboard")
         keyboard_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -64,6 +108,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
             self.gamepad_buttons.append(QtWidgets.QPushButton())
             self.gamepad_buttons[-1] = QtWidgets.QPushButton()
             self.gamepad_buttons[-1].setMaximumWidth(150)
+            self.gamepad_buttons[-1].setText(gamepad_bindings[key])
             self.gamepad_buttons[-1].clicked.connect(partial(self._gamepad_button_trigger, i, key))
 
             layout.addWidget(joypad_label, i + 1, 0)
@@ -78,7 +123,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
 
     def _keyboard_button_trigger(self, index: int, joypad_button: str):
-        dialog = KeyBindingDialog(joypad_button)
+        dialog = KeyboardBindingDialog(joypad_button)
         dialog.exec()
 
         key_bindings = config.get_keyboard_bindings()
@@ -86,4 +131,8 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
 
     def _gamepad_button_trigger(self, index: int, joypad_button: str):
-        pass
+        dialog = GamepadBindingDialog(joypad_button)
+        dialog.exec()
+
+        gamepad_bindings = config.get_gamepad_bindings()
+        self.gamepad_buttons[index].setText(gamepad_bindings[joypad_button])
