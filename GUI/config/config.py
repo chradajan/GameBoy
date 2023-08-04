@@ -43,15 +43,15 @@ def load_config(config_path: Path):
             "Blue": "c0c0ff 5f60ff 0000c0 000060",
         }
 
-        CONFIG["DefaultControls"] = {
-            "down": 83,
-            "up": 87,
-            "left": 65,
-            "right": 68,
-            "start": 16777220,
-            "select": 16777248,
-            "b": 75,
-            "a": 76,
+        CONFIG["GamepadControls"] = {
+            "down": "d_pad_down",
+            "up": "d_pad_up",
+            "left": "d_pad_left",
+            "right": "d_pad_right",
+            "start": "start",
+            "select": "select",
+            "b": "b",
+            "a": "a",
         }
 
         CONFIG["Controls"] = {
@@ -68,7 +68,7 @@ def load_config(config_path: Path):
         save_config()
 
 
-def get_current_key_bindings() -> Dict[str, int]:
+def get_keyboard_bindings() -> Dict[str, int]:
     """Get the current keyboard bindings.
 
     Returns:
@@ -83,7 +83,7 @@ def get_current_key_bindings() -> Dict[str, int]:
     return bindings
 
 
-def set_key_binding(key: str, scancode: int):
+def set_keyboard_binding(key: str, scancode: int):
     """Change a keyboard binding.
 
     Args:
@@ -92,6 +92,33 @@ def set_key_binding(key: str, scancode: int):
     """
     global CONFIG
     CONFIG["Controls"][key] = str(scancode)
+    save_config()
+
+
+def get_gamepad_bindings() -> Dict[str, str]:
+    """Get the current gamepad bindings.
+
+    Returns:
+        Dictionary mapping joypad key name to inputs gamepad names.
+    """
+    global CONFIG
+    bindings = {}
+
+    for key, gamepad_key in CONFIG["GamepadControls"].items():
+        bindings[key] = gamepad_key
+
+    return bindings
+
+
+def set_gamepad_binding(key: str, gamepad_key: int):
+    """Change a keyboard binding.
+
+    Args:
+        key: Name of joypad to update binding of.
+        gamepad_key: Inputs gamepad name of button to bind.
+    """
+    global CONFIG
+    CONFIG["GamepadControls"][key] = gamepad_key
     save_config()
 
 

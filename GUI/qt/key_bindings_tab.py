@@ -22,7 +22,7 @@ class KeyBindingDialog(QtWidgets.QMessageBox):
             return
 
         if event.key() != QtCore.Qt.Key.Key_Escape:
-            config.set_key_binding(self.joypad_button_to_bind, event.key())
+            config.set_keyboard_binding(self.joypad_button_to_bind, event.key())
 
         self.accept()
 
@@ -41,7 +41,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
     def _init_ui(self):
         layout = QtWidgets.QGridLayout()
-        bindings = config.get_current_key_bindings()
+        keyboard_bindings = config.get_keyboard_bindings()
 
         keyboard_label = QtWidgets.QLabel("Keyboard")
         keyboard_label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
@@ -58,7 +58,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
             self.keyboard_buttons.append(QtWidgets.QPushButton())
             self.keyboard_buttons[-1].setMaximumWidth(150)
-            self.keyboard_buttons[-1].setText(QtCore.Qt.Key(bindings[key]).name[4:])
+            self.keyboard_buttons[-1].setText(QtCore.Qt.Key(keyboard_bindings[key]).name[4:])
             self.keyboard_buttons[-1].clicked.connect(partial(self._keyboard_button_trigger, i, key))
 
             self.gamepad_buttons.append(QtWidgets.QPushButton())
@@ -81,7 +81,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
         dialog = KeyBindingDialog(joypad_button)
         dialog.exec()
 
-        key_bindings = config.get_current_key_bindings()
+        key_bindings = config.get_keyboard_bindings()
         self.keyboard_buttons[index].setText(QtCore.Qt.Key(key_bindings[joypad_button]).name[4:])
 
 

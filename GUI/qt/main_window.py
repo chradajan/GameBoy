@@ -1,10 +1,13 @@
 import datetime
+import threading
 from functools import partial
 from pathlib import Path
+from typing import Set
 
 from PyQt6 import QtCore, QtGui, QtWidgets
 
 import config.config as config
+import controller.controller as controller
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
 from qt.preferences_window import PreferencesWindow
@@ -33,7 +36,38 @@ class MainWindow(QtWidgets.QMainWindow):
         self.game_loaded = False
 
         # I/O
-        self.keys_pressed = set()
+        self.keys_pressed: Set[int] = set()
+        self.gamepad: controller.Gamepad = {
+            "left_stick_y_up": 0.0,
+            "left_stick_y_down": 0.0,
+            "left_stick_x_right": 0.0,
+            "left_stick_x_left": 0.0,
+            "right_stick_y_up": 0.0,
+            "right_stick_y_down": 0.0,
+            "right_stick_x_right": 0.0,
+            "right_stick_x_left": 0.0,
+            "left_trigger": 0,
+            "right_trigger": 0,
+            "left_bumper": 0,
+            "right_bumper": 0,
+            "a": 0,
+            "b": 0,
+            "x": 0,
+            "y": 0,
+            "left_thumb": 0,
+            "right_thumb": 0,
+            "select": 0,
+            "start": 0,
+            "d_pad_left": 0,
+            "d_pad_right": 0,
+            "d_pad_up": 0,
+            "d_pad_down": 0,
+        }
+
+        # Gamepad
+        self.gamepad_thread = threading.Thread(target=partial(controller.monitor_gamepad, self.gamepad))
+        self.gamepad_thread.daemon = True
+        self.gamepad_thread.start()
 
         # GUI components
         self.last_checked_window_size: QtGui.QAction = None
@@ -146,17 +180,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def _update_joypad(self):
-        bindings = config.get_current_key_bindings()
+        keyboard_bindings = config.get_keyboard_bindings()
+        gamepad_bindings = config.get_gamepad_bindings()
 
         joypad = game_boy.JoyPad(
-            bindings["down"] in self.keys_pressed,
-            bindings["up"] in self.keys_pressed,
-            bindings["left"] in self.keys_pressed,
-            bindings["right"] in self.keys_pressed,
-            bindings["start"] in self.keys_pressed,
-            bindings["select"] in self.keys_pressed,
-            bindings["b"] in self.keys_pressed,
-            bindings["a"] in self.keys_pressed,
+            (keyboard_bindings["down"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["down"]]),
+            (keyboard_bindings["up"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["up"]]),
+            (keyboard_bindings["left"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["left"]]),
+            (keyboard_bindings["right"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["right"]]),
+            (keyboard_bindings["start"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["start"]]),
+            (keyboard_bindings["select"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["select"]]),
+            (keyboard_bindings["b"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["b"]]),
+            (keyboard_bindings["a"] in self.keys_pressed) or (self.gamepad[gamepad_bindings["a"]]),
         )
         game_boy.set_joypad_state(joypad)
 
