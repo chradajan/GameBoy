@@ -45,6 +45,10 @@ def load_config(config_path: Path):
             "Blue": "c0c0ff 5f60ff 0000c0 000060",
         }
 
+        CONFIG["Sound"] = {
+            "volume": 100,
+        }
+
         CONFIG["GamepadControls"] = {
             "down": "d_pad_down",
             "up": "d_pad_up",
@@ -308,4 +312,25 @@ def delete_color_scheme(name: str):
     if name in CONFIG["Colors"]:
         CONFIG.remove_option("Colors", name)
 
+    save_config()
+
+
+def get_saved_volume() -> int:
+    """Get the saved volume value.
+
+    Returns:
+        Saved volume [0-100].
+    """
+    global CONFIG
+    return int(CONFIG["Sound"]["volume"])
+
+
+def set_saved_volume(volume: int):
+    """Set the saved volume value.
+
+    Args:
+        volume: Volume to save [0-100].
+    """
+    global CONFIG
+    CONFIG["Sound"]["volume"] = str(volume)
     save_config()

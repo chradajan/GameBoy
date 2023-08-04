@@ -6,8 +6,8 @@ import config.config as config
 import game_boy.game_boy as game_boy
 
 class ColorTab(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
 
         self.drop_downs: List[QtWidgets.QComboBox] = []
 

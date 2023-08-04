@@ -5,8 +5,8 @@ from PyQt6 import QtWidgets
 import config.config as config
 
 class PathsTab(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
         self._init_ui()
 
 

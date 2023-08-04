@@ -31,6 +31,9 @@ def main() -> int:
     sdl_audio.initialize_sdl_audio(44100)
     config.load_config(config_path)
 
+    volume = config.get_saved_volume()
+    game_boy.set_volume(volume / 100)
+
     app = QtWidgets.QApplication([])
     MAIN_WINDOW = MainWindow()
 

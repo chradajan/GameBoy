@@ -52,17 +52,6 @@ void APU::PowerOn(bool const skipBootRom)
     channel2_.PowerOn(skipBootRom);
     channel3_.PowerOn(skipBootRom);
     channel4_.PowerOn(skipBootRom);
-
-    if (!hasBeenPoweredOn_)
-    {
-        hasBeenPoweredOn_ = true;
-        monoAudio_ = false;
-        volume_ = 1.0;
-        channel1Enabled_ = true;
-        channel2Enabled_ = true;
-        channel3Enabled_ = true;
-        channel4Enabled_ = true;
-    }
 }
 
 void APU::GetAudioSample(float* left, float* right)
@@ -87,7 +76,7 @@ void APU::GetAudioSample(float* left, float* right)
     *left = 0.0;
     *right = 0.0;
 
-    if (channel1Enabled_)
+    if (!channel1Disabled_)
     {
         if (monoAudio_ && (mix1Left_ || mix1Right_))
         {
@@ -104,7 +93,7 @@ void APU::GetAudioSample(float* left, float* right)
         }
     }
 
-    if (channel2Enabled_)
+    if (!channel2Disabled_)
     {
         if (monoAudio_ && (mix2Left_ || mix2Right_))
         {
@@ -121,7 +110,7 @@ void APU::GetAudioSample(float* left, float* right)
         }
     }
 
-    if (channel3Enabled_)
+    if (!channel3Disabled_)
     {
         if (monoAudio_ && (mix3Left_ || mix3Right_))
         {
@@ -138,7 +127,7 @@ void APU::GetAudioSample(float* left, float* right)
         }
     }
 
-    if (channel4Enabled_)
+    if (!channel4Disabled_)
     {
         if (monoAudio_ && (mix4Left_ || mix4Right_))
         {
@@ -289,23 +278,21 @@ void APU::Serialize(std::ofstream& out)
 void APU::Deserialize(std::ifstream& in)
 {
     // Don't load GUI overwrites from save state
-    bool hasBeenPoweredOn = hasBeenPoweredOn_;
     bool monoAudio = monoAudio_;
     float volume = volume_;
-    bool channel1Enabled = channel1Enabled_;
-    bool channel2Enabled = channel2Enabled_;
-    bool channel3Enabled = channel3Enabled_;
-    bool channel4Enabled = channel4Enabled_;
+    bool channel1Disabled = channel1Disabled_;
+    bool channel2Disabled = channel2Disabled_;
+    bool channel3Disabled = channel3Disabled_;
+    bool channel4Disabled = channel4Disabled_;
 
     in.read(reinterpret_cast<char*>(this), sizeof(*this));
 
-    hasBeenPoweredOn_ = hasBeenPoweredOn;
     monoAudio_ = monoAudio;
     volume_ = volume;
-    channel1Enabled_ = channel1Enabled;
-    channel2Enabled_ = channel2Enabled;
-    channel3Enabled_ = channel3Enabled;
-    channel4Enabled_ = channel4Enabled;
+    channel1Disabled_ = channel1Disabled;
+    channel2Disabled_ = channel2Disabled;
+    channel3Disabled_ = channel3Disabled;
+    channel4Disabled_ = channel4Disabled;
 }
 
 void APU::EnableSoundChannel(int const channel, bool const enabled)
@@ -313,16 +300,16 @@ void APU::EnableSoundChannel(int const channel, bool const enabled)
     switch (channel)
     {
         case 1:
-            channel1Enabled_ = enabled;
+            channel1Disabled_ = !enabled;
             break;
         case 2:
-            channel2Enabled_ = enabled;
+            channel2Disabled_ = !enabled;
             break;
         case 3:
-            channel3Enabled_ = enabled;
+            channel3Disabled_ = !enabled;
             break;
         case 4:
-            channel4Enabled_ = enabled;
+            channel4Disabled_ = !enabled;
             break;
         default:
             break;

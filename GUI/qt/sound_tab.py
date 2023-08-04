@@ -1,16 +1,26 @@
+from functools import partial
+from typing import List
+
 from PyQt6 import QtCore, QtWidgets
 
+import config.config as config
 import game_boy.game_boy as game_boy
 import sdl.sdl_audio as sdl_audio
 
 class SoundTab(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
 
-        self.volume_slider = None
+        self.channel_boxes: List[QtWidgets.QCheckBox] = []
+
+        self.volume_slider: QtWidgets.QSlider = None
         self.saved_volume = 100
-        self.mute_box = None
+
+        self.mute_box: QtWidgets.QCheckBox = None
+        self.mono_box: QtWidgets.QCheckBox = None
         self.muted = False
+
+        self.sample_rate_dropdown: QtWidgets.QComboBox = None
 
         self._init_ui()
 
@@ -23,10 +33,10 @@ class SoundTab(QtWidgets.QWidget):
         channel_layout = QtWidgets.QVBoxLayout()
 
         for i in range(1, 5):
-            widget = QtWidgets.QCheckBox(f"Channel {i}")
-            widget.setChecked(True)
-            widget.toggled.connect(self._toggle_sound_channel)
-            channel_layout.addWidget(widget)
+            self.channel_boxes.append(QtWidgets.QCheckBox(f"Channel {i}"))
+            self.channel_boxes[-1].setChecked(True)
+            self.channel_boxes[-1].toggled.connect(partial(self._toggle_sound_channel, i))
+            channel_layout.addWidget(self.channel_boxes[-1])
 
         channels.setLayout(channel_layout)
         main_layout.addWidget(channels, 0, 0)
@@ -39,17 +49,16 @@ class SoundTab(QtWidgets.QWidget):
         self.mute_box.clicked.connect(self._toggle_mute)
         options_layout.addWidget(self.mute_box)
 
-        mono_audio_box = QtWidgets.QCheckBox("Mono output")
-        mono_audio_box.toggled.connect(self._toggle_mono_audio)
-        options_layout.addWidget(mono_audio_box)
+        self.mono_box = QtWidgets.QCheckBox("Mono output")
+        self.mono_box.toggled.connect(self._toggle_mono_audio)
+        options_layout.addWidget(self.mono_box)
 
-        sample_rate_label = QtWidgets.QLabel("Sample Rate")
-        sample_rate = QtWidgets.QComboBox()
-        sample_rate.addItems(["8000", "11025", "22050", "24000", "44100", "48000"])
-        sample_rate.setCurrentIndex(4)
-        sample_rate.activated.connect(self._set_sample_rate)
-        options_layout.addWidget(sample_rate_label)
-        options_layout.addWidget(sample_rate)
+        self.sample_rate_dropdown = QtWidgets.QComboBox()
+        self.sample_rate_dropdown.addItems(["8000", "11025", "22050", "24000", "44100", "48000"])
+        self.sample_rate_dropdown.setCurrentIndex(4)
+        self.sample_rate_dropdown.activated.connect(self._set_sample_rate)
+        options_layout.addWidget(QtWidgets.QLabel("Sample Rate"))
+        options_layout.addWidget(self.sample_rate_dropdown)
 
         options.setLayout(options_layout)
         main_layout.addWidget(options, 0, 1)
@@ -62,8 +71,9 @@ class SoundTab(QtWidgets.QWidget):
         self.volume_slider.setMaximum(100)
         self.volume_slider.setSingleStep(1)
         self.volume_slider.setPageStep(0)
-        self.volume_slider.setValue(self.saved_volume)
-        self.volume_slider.sliderReleased.connect(self._set_volume)
+        self.volume_slider.setValue(config.get_saved_volume())
+        self.volume_slider.sliderMoved.connect(self._slider_moved)
+        self.volume_slider.sliderReleased.connect(self._slider_released)
         volume_layout.addWidget(self.volume_slider)
 
         volume.setLayout(volume_layout)
@@ -76,10 +86,8 @@ class SoundTab(QtWidgets.QWidget):
         self.setLayout(main_layout)
 
 
-    def _toggle_sound_channel(self):
-        channel = int(self.sender().text()[-1])
+    def _toggle_sound_channel(self, channel: int):
         enabled = self.sender().isChecked()
-
         game_boy.enable_sound_channel(channel, enabled)
 
 
@@ -104,10 +112,35 @@ class SoundTab(QtWidgets.QWidget):
         sdl_audio.update_sample_rate(sample_rate)
 
 
-    def _set_volume(self):
+    def _slider_moved(self):
         new_volume = self.sender().value()
 
         if self.muted and new_volume > 0:
             self.mute_box.setChecked(False)
 
         game_boy.set_volume(new_volume / 100)
+
+
+    def _slider_released(self):
+        config.set_saved_volume(self.sender().value())
+
+
+    def restore_defaults(self):
+        for i in range(4):
+            self.channel_boxes[i].setChecked(True)
+            game_boy.enable_sound_channel(i+1, True)
+
+        config.set_saved_volume(100)
+        game_boy.set_volume(1.0)
+        self.volume_slider.setValue(100)
+        self.saved_volume = 100
+
+        self.mute_box.setChecked(False)
+        self.muted = False
+
+        game_boy.set_mono_audio(False)
+        self.mono_box.setChecked(False)
+
+        game_boy.set_sample_rate(44100)
+        sdl_audio.update_sample_rate(44100)
+        self.sample_rate_dropdown.setCurrentIndex(4)

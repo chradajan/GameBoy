@@ -43,15 +43,13 @@ private:
     void AdvanceFrameSequencer();
 
     // GUI overrides
-    bool hasBeenPoweredOn_;
-
     bool monoAudio_;
     float volume_;
 
-    bool channel1Enabled_;
-    bool channel2Enabled_;
-    bool channel3Enabled_;
-    bool channel4Enabled_;
+    bool channel1Disabled_;
+    bool channel2Disabled_;
+    bool channel3Disabled_;
+    bool channel4Disabled_;
 
     // State
     bool apuEnabled_;

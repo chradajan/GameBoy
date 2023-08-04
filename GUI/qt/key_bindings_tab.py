@@ -71,8 +71,8 @@ class GamepadBindingDialog(QtWidgets.QMessageBox):
 
 
 class KeyBindingsTab(QtWidgets.QWidget):
-    def __init__(self, parent: QtWidgets.QWidget):
-        super().__init__(parent)
+    def __init__(self):
+        super().__init__()
 
         self.button_to_bind: str = None
         self.keyboard_index_to_update: int = None
