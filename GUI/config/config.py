@@ -21,8 +21,10 @@ def load_config(config_path: Path):
         CONFIG.read(CONFIG_PATH)
     else:
         CONFIG["Paths"] = {
-            "last_rom_dir": CONFIG_PATH.parents[0],
-            "boot_rom_dir": "",
+            "last_rom_dir": "",
+            "boot_rom_path": "",
+            "saves_dir": "",
+            "save_states_dir": "",
             "recent_0": "",
             "recent_1": "",
             "recent_2": "",
@@ -132,7 +134,7 @@ def get_last_rom_directory() -> str:
     return CONFIG["Paths"]["last_rom_dir"]
 
 
-def update_last_rom_directory(rom_path: str):
+def set_last_rom_directory(rom_path: str):
     """Set the most recent directory that a ROM was loaded from.
 
     Args:
@@ -140,6 +142,69 @@ def update_last_rom_directory(rom_path: str):
     """
     global CONFIG
     CONFIG["Paths"]["last_rom_dir"] = rom_path
+    save_config()
+
+
+def get_boot_rom_path() -> str:
+    """Get the path to the boot ROM.
+
+    Returns:
+        Boot ROM path.
+    """
+    global CONFIG
+    return CONFIG["Paths"]["boot_rom_path"]
+
+
+def set_boot_rom_path(boot_rom_path: str):
+    """Set the path to the boot ROM.
+
+    Args:
+        boot_rom_path: Path to boot ROM.
+    """
+    global CONFIG
+    CONFIG["Paths"]["boot_rom_path"] = boot_rom_path
+    save_config()
+
+
+def get_saves_directory() -> str:
+    """Get the path to the directory to store save games.
+
+    Returns:
+        Saves directory path.
+    """
+    global CONFIG
+    return CONFIG["Paths"]["saves_dir"]
+
+
+def set_saves_directory(saves_directory: str):
+    """Set the path to the directory to store save games.
+
+    Args:
+        save_directory_path: Path to saves directory.
+    """
+    global CONFIG
+    CONFIG["Paths"]["saves_dir"] = saves_directory
+    save_config()
+
+
+def get_save_states_directory() -> str:
+    """Get the path to the directory to store save states.
+
+    Returns:
+        Save states directory path.
+    """
+    global CONFIG
+    return CONFIG["Paths"]["save_states_dir"]
+
+
+def set_save_states_directory(save_states_directory: str):
+    """Set the path to the directory to store save states.
+
+    Args:
+        save_directory_path: Path to save states directory.
+    """
+    global CONFIG
+    CONFIG["Paths"]["save_states_dir"] = save_states_directory
     save_config()
 
 

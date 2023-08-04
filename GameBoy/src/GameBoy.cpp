@@ -15,6 +15,10 @@
 #include <string>
 #include <utility>
 
+static constexpr std::array<uint8_t, 16> expectedBootRomBytes = {
+    0x31, 0xFE, 0xFF, 0x3E, 0x02, 0xC3, 0x7C, 0x00, 0xD3, 0x00, 0x98, 0xA0, 0x12, 0xD3, 0x00, 0x80
+};
+
 GameBoy::GameBoy() :
     cgbMode_(false),
     cpu_(std::bind(&GameBoy::Read, this, std::placeholders::_1),
@@ -26,17 +30,13 @@ GameBoy::GameBoy() :
 {
 }
 
-void GameBoy::Initialize(uint8_t* frameBuffer,
-                         std::filesystem::path const savePath,
-                         std::filesystem::path const bootRomPath)
+void GameBoy::Initialize(uint8_t* frameBuffer)
 {
     frameBuffer_ = frameBuffer;
-    saveDirectory_ = savePath;
-    bootRomPath_ = bootRomPath;
     ppu_.SetFrameBuffer(frameBuffer);
 }
 
-bool GameBoy::InsertCartridge(std::filesystem::path const romPath, char* romName)
+bool GameBoy::InsertCartridge(std::filesystem::path const romPath, std::filesystem::path const saveDirectory, char* romName)
 {
     std::ifstream rom(romPath, std::ios::binary);
 
@@ -72,9 +72,9 @@ bool GameBoy::InsertCartridge(std::filesystem::path const romPath, char* romName
     std::strcpy(romName, title.str().c_str());
     std::filesystem::path savePath;
 
-    if (!saveDirectory_.empty())
+    if (!saveDirectory.empty())
     {
-        savePath = saveDirectory_ / (title.str() + ".sav");
+        savePath = saveDirectory / (title.str() + ".sav");
     }
 
     uint_fast16_t romBanks = 2 << bank0[0x0148];
@@ -128,7 +128,7 @@ bool GameBoy::InsertCartridge(std::filesystem::path const romPath, char* romName
     return success;
 }
 
-void GameBoy::PowerOn()
+void GameBoy::PowerOn(std::filesystem::path const bootRomPath)
 {
     if (cartridge_)
     {
@@ -136,7 +136,7 @@ void GameBoy::PowerOn()
     }
 
     cgbMode_ = true;
-    std::ifstream bootROM(bootRomPath_, std::ios::binary);
+    std::ifstream bootROM(bootRomPath, std::ios::binary);
 
     if (bootROM.fail())
     {
@@ -146,9 +146,30 @@ void GameBoy::PowerOn()
     }
     else
     {
-        bootROM.read(reinterpret_cast<char*>(BOOT_ROM.data()), BOOT_ROM.size());
-        runningBootRom_ = true;
-        ppu_.ForceDmgColors(false);
+        // Verify the first 16 bytes to make sure it's a valid boot ROM.
+        bool validBootRom = true;
+        bootROM.read(reinterpret_cast<char*>(BOOT_ROM.data()), 16);
+
+        for (uint_fast8_t i = 0; i < 16; ++i)
+        {
+            if (BOOT_ROM[i] != expectedBootRomBytes[i])
+            {
+                validBootRom = false;
+                break;
+            }
+        }
+
+        runningBootRom_ = validBootRom;
+        ppu_.ForceDmgColors(!validBootRom);
+
+        if (validBootRom)
+        {
+            bootROM.read(reinterpret_cast<char*>(BOOT_ROM.data()) + 16, BOOT_ROM.size());
+        }
+        else
+        {
+            cgbMode_ = cgbCartridge_;
+        }
     }
 
     for (auto& bank : WRAM_)

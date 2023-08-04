@@ -3,6 +3,7 @@ from PyQt6 import QtCore, QtGui, QtWidgets
 import game_boy.game_boy as game_boy
 from qt.color_tab import ColorTab
 from qt.key_bindings_tab import KeyBindingsTab
+from qt.paths_tab import PathsTab
 from qt.sound_tab import SoundTab
 
 class PreferencesWindow(QtWidgets.QTabWidget):
@@ -16,10 +17,12 @@ class PreferencesWindow(QtWidgets.QTabWidget):
         self.sound_tab = SoundTab(self)
         self.color_tab = ColorTab(self)
         self.key_bindings_tab = KeyBindingsTab(self)
+        self.paths_tab = PathsTab(self)
 
         self.addTab(self.sound_tab, "Sound")
         self.addTab(self.color_tab, "Colors")
         self.addTab(self.key_bindings_tab, "Controls")
+        self.addTab(self.paths_tab, "Paths")
 
         self.setWindowTitle("Preferences")
 

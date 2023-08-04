@@ -19,14 +19,10 @@ if sys.platform == "darwin":
 elif sys.platform == "win32":
     GAME_BOY = ctypes.CDLL("./GameBoy/lib/libGameBoy.dll", winmode=0)
 
-GAME_BOY.Initialize.argtypes = [
-    ctypes.POINTER(ctypes.c_uint8),
-    ctypes.CFUNCTYPE(None),
-    ctypes.POINTER(ctypes.c_char),
-    ctypes.POINTER(ctypes.c_char)
-]
-GAME_BOY.InsertCartridge.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
+GAME_BOY.Initialize.argtypes = [ctypes.POINTER(ctypes.c_uint8), ctypes.CFUNCTYPE(None)]
+GAME_BOY.InsertCartridge.argtypes = [ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char), ctypes.POINTER(ctypes.c_char)]
 GAME_BOY.InsertCartridge.restype = ctypes.c_bool
+GAME_BOY.PowerOn.argtypes = [ctypes.POINTER(ctypes.c_char)]
 GAME_BOY.CollectAudioSamples.argtypes = [ctypes.POINTER(ctypes.c_float), ctypes.c_int]
 GAME_BOY.SetInputs.argtypes = [
     ctypes.c_bool,
@@ -62,42 +58,33 @@ class JoyPad:
     a: bool
 
 
-def initialize_game_boy(base_path: Path, update_screen_callback: ctypes.CFUNCTYPE(None)):
+def initialize_game_boy(update_screen_callback: ctypes.CFUNCTYPE(None)):
     """Initialize the Game Boy library.
 
     Args:
-        base_path: Directory containing the save and boot ROM paths.
         update_screen_callback: Function to call to refresh screen.
     """
-    save_path = base_path / "saves"
-    boot_rom_dir = base_path / "boot"
-    boot_rom_path = boot_rom_dir / "cgb_boot.bin"
-    save_path.mkdir(parents=True, exist_ok=True)
-    boot_rom_dir.mkdir(parents=True, exist_ok=True)
+    GAME_BOY.Initialize(FRAME_BUFFER, update_screen_callback)
 
-    save_path_buffer = ctypes.create_string_buffer(str.encode(str(save_path.absolute())))
-    boot_rom_path_buffer = ctypes.create_string_buffer(str.encode(str(boot_rom_path.absolute())))
 
-    GAME_BOY.Initialize(FRAME_BUFFER, update_screen_callback, save_path_buffer, boot_rom_path_buffer)
-
-def insert_cartridge(path: str | bytes | Path) -> str:
+def insert_cartridge(rom_path: str, save_directory: str) -> str:
     """Load specified Game Boy ROM file.
 
     Args:
-        path: Path to ROM file.
+        rom_path: Path to ROM file.
+        save_directory: Path to directory to save/load cartridge SRAM from.
 
     Returns:
         ROM name from cartridge header.
     """
-    if type(path) == str:
-        path_buffer = ctypes.create_string_buffer(str.encode(path))
-    elif type(path) == bytes:
-        path_buffer = ctypes.create_string_buffer(path)
-    elif type(path) == Path:
-        path_buffer = ctypes.create_string_buffer(str.encode(str(path.absolute())))
+    if not save_directory:
+        save_directory = str(Path(rom_path).parents[0])
 
+    rom_path_buffer = ctypes.create_string_buffer(str.encode(rom_path))
+    save_directory_buffer = ctypes.create_string_buffer(str.encode(save_directory))
     rom_name = ctypes.create_string_buffer(16)
-    success = GAME_BOY.InsertCartridge(path_buffer, rom_name)
+
+    success = GAME_BOY.InsertCartridge(rom_path_buffer, save_directory_buffer, rom_name)
 
     if success:
         rom_str = rom_name.value.decode()
@@ -106,9 +93,16 @@ def insert_cartridge(path: str | bytes | Path) -> str:
 
     return rom_str
 
-def power_on():
-    """Power on the Game Boy. This function will reset the Game Boy to its initialize power on state."""
-    GAME_BOY.PowerOn()
+
+def power_on(boot_rom_path: str):
+    """Power on the Game Boy. This function will reset the Game Boy to its initialize power on state.
+
+    Args:
+        boot_rom_path: Path to boot ROM. If empty, game will bypass boot up screen and launch directly.
+    """
+    boot_rom_path_buffer = ctypes.create_string_buffer(str.encode(boot_rom_path))
+    GAME_BOY.PowerOn(boot_rom_path_buffer)
+
 
 def set_joypad_state(joypad: JoyPad):
     """Update the Game Boy joypad state based on currently pressed keys.
@@ -117,6 +111,7 @@ def set_joypad_state(joypad: JoyPad):
         joypad: Current state of each joypad button.
     """
     GAME_BOY.SetInputs(joypad.down, joypad.up, joypad.left, joypad.right, joypad.start, joypad.select, joypad.b, joypad.a)
+
 
 def collect_audio_samples(buffer: ctypes.POINTER(ctypes.c_float), len: int):
     """Run the Game Boy and fill the buffer with audio samples.
@@ -127,6 +122,7 @@ def collect_audio_samples(buffer: ctypes.POINTER(ctypes.c_float), len: int):
     """
     GAME_BOY.CollectAudioSamples(buffer, len)
 
+
 def set_frame_ready_callback(callback: ctypes.CFUNCTYPE(None)):
     """Set the callback function used to render the frame buffer whenever it's full.
 
@@ -135,9 +131,11 @@ def set_frame_ready_callback(callback: ctypes.CFUNCTYPE(None)):
     """
     GAME_BOY.SetFrameReadyCallback(callback)
 
+
 def power_off():
     """Turn off Game Boy. If the current game supports battery-backed saves, create a save file."""
     GAME_BOY.PowerOff()
+
 
 def get_frame_buffer() -> bytes:
     """Get a bytes representation of the frame buffer.
@@ -147,6 +145,7 @@ def get_frame_buffer() -> bytes:
     """
     return bytes(FRAME_BUFFER)
 
+
 def change_emulation_speed(multiplier: float):
     """Alter the emulation speed by changing the Game Boy frequency.
 
@@ -154,6 +153,7 @@ def change_emulation_speed(multiplier: float):
         multiplier: Multiplier to alter clock speed by.
     """
     GAME_BOY.SetClockMultiplier(ctypes.c_float(multiplier))
+
 
 def create_save_state(save_state_path: Path):
     """Generate a save state at the specified path.
@@ -164,6 +164,7 @@ def create_save_state(save_state_path: Path):
     save_state_path_buffer = ctypes.create_string_buffer(str.encode(str(save_state_path.absolute())))
     GAME_BOY.CreateSaveState(save_state_path_buffer)
 
+
 def load_save_state(save_state_path: Path):
     """Load a save state from the specified path.
 
@@ -172,6 +173,7 @@ def load_save_state(save_state_path: Path):
     """
     save_state_path_buffer = ctypes.create_string_buffer(str.encode(str(save_state_path.absolute())))
     GAME_BOY.LoadSaveState(save_state_path_buffer)
+
 
 def enable_sound_channel(channel: int, enabled: bool):
     """Toggle a specific sound channel.
@@ -182,6 +184,7 @@ def enable_sound_channel(channel: int, enabled: bool):
     """
     GAME_BOY.EnableSoundChannel(ctypes.c_int(channel), ctypes.c_bool(enabled))
 
+
 def set_mono_audio(mono_audio: bool):
     """Toggle between mono and stereo audio.
 
@@ -189,6 +192,7 @@ def set_mono_audio(mono_audio: bool):
         mono_audio: True to use mono audio, False for stereo.
     """
     GAME_BOY.SetMonoAudio(ctypes.c_bool(mono_audio))
+
 
 def set_volume(volume: float):
     """Set the volume output level.
@@ -198,6 +202,7 @@ def set_volume(volume: float):
     """
     GAME_BOY.SetVolume(ctypes.c_float(volume))
 
+
 def set_sample_rate(rate: int):
     """Set the sampling frequency used by SDL.
 
@@ -205,6 +210,7 @@ def set_sample_rate(rate: int):
         rate: Sample frequency in Hz.
     """
     GAME_BOY.SetSampleRate(ctypes.c_int(rate))
+
 
 def prefer_dmg_colors(use_dmg_colors: bool):
     """If playing a GB game, prefer to use a custom DMG palette instead of the one determined by boot ROM.
@@ -214,12 +220,14 @@ def prefer_dmg_colors(use_dmg_colors: bool):
     """
     GAME_BOY.PreferDmgColors(ctypes.c_bool(use_dmg_colors))
 
+
 def use_individual_palettes(individual_palettes: bool):
     """When using DMG palettes, determine whether each pixel type should share a palette or use its own custom one.
 
     Args:
         individual_palettes: True if pixel sources should use their own palettes, False if they should all use the same palette."""
     GAME_BOY.UseIndividualPalettes(ctypes.c_bool(individual_palettes))
+
 
 def set_custom_palette(index: int, data: List[int]):
     """Set custom DMG palette.

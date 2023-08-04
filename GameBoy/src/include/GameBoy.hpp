@@ -115,18 +115,18 @@ public:
     /// @brief GameBoy constructor. Handles creation of all components.
     GameBoy();
 
-    void Initialize(uint8_t* frameBuffer,
-                    std::filesystem::path savePath,
-                    std::filesystem::path bootRomPath);
+    void Initialize(uint8_t* frameBuffer);
 
     /// @brief Load cartridge data from GameBoy ROM.
-    /// @param romPath Path to gb ROM file.
+    /// @param[in] romPath Path to gb ROM file.
+    /// @param[in] saveDirectory Directory to save and load cartridge SRAM from.
     /// @param[out] romName ROM name from cartridge header.
     /// @return True if ROM was successfully loaded.
-    bool InsertCartridge(std::filesystem::path romPath, char* romName);
+    bool InsertCartridge(std::filesystem::path romPath, std::filesystem::path saveDirectory, char* romName);
 
     /// @brief Prepare the GameBoy to be run.
-    void PowerOn();
+    /// @param[in] bootRomPath Path to boot ROM.
+    void PowerOn(std::filesystem::path bootRomPath);
 
     /// @brief Run the Game Boy for some number of machine cycles.
     /// @param[in] numCycles Number of machine cycles to run it for.
@@ -278,10 +278,6 @@ private:
         bool down, up, left, right;  // Directions
         bool start, select, b, a; // Actions
     } buttons_;
-
-    // Paths
-    std::filesystem::path saveDirectory_;
-    std::filesystem::path bootRomPath_;
 
     // I/O Registers
     std::array<uint8_t, 0x78> ioReg_;

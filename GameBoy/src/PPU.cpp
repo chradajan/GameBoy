@@ -373,7 +373,7 @@ void PPU::OamScan()
 
 void PPU::RenderPixel(Pixel pixel)
 {
-    if (forceDmgColors_ || (!cgbMode_ && preferDmgColors_))
+    if (!cgbMode_ && (forceDmgColors_ || preferDmgColors_))
     {
         RenderDmgPixel(pixel);
     }

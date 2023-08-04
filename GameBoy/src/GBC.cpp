@@ -20,23 +20,20 @@ bool loadSaveState = false;
 std::filesystem::path saveStatePathFS = "";
 
 
-void Initialize(uint8_t* frameBuffer,
-                void(*updateScreen)(),
-                char* const savePath,
-                char* const bootRomPath)
+void Initialize(uint8_t* frameBuffer, void(*updateScreen)())
 {
     frameUpdateCallback = updateScreen;
-    gb->Initialize(frameBuffer, savePath, bootRomPath);
+    gb->Initialize(frameBuffer);
 }
 
-bool InsertCartridge(char* romPath, char* romName)
+bool InsertCartridge(char* romPath, char* saveDirectory, char* romName)
 {
-    return gb->InsertCartridge(romPath, romName);
+    return gb->InsertCartridge(romPath, saveDirectory, romName);
 }
 
-void PowerOn()
+void PowerOn(char* bootRomPath)
 {
-    gb->PowerOn();
+    gb->PowerOn(bootRomPath);
 }
 
 void PowerOff()

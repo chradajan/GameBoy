@@ -25,14 +25,14 @@ def refresh_screen_callback():
 
 def main() -> int:
     global MAIN_WINDOW
-    main_path = Path(__file__).resolve().parents[1]
-    game_boy.initialize_game_boy(main_path, refresh_screen_callback)
+    config_path = Path(__file__).resolve().parents[0]
+    game_boy.initialize_game_boy(refresh_screen_callback)
     game_boy.set_sample_rate(44100)
     sdl_audio.initialize_sdl_audio(44100)
-    config.load_config(main_path)
+    config.load_config(config_path)
 
     app = QtWidgets.QApplication([])
-    MAIN_WINDOW = MainWindow(main_path)
+    MAIN_WINDOW = MainWindow()
 
     sdl_audio.unlock_audio()
     val = app.exec()

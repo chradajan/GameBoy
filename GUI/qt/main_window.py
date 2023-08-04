@@ -19,10 +19,9 @@ class MainWindow(QtWidgets.QMainWindow):
     window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
     game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
 
-    def __init__(self, root_directory: Path):
+    def __init__(self):
         super().__init__()
         self.game_speed = 1.0
-        self.root_directory = root_directory
 
         # File menu
         self.recents_menu: QtWidgets.QMenu = None
@@ -34,6 +33,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.window_scale = 4
         self.game_title = "Game Boy"
         self.game_loaded = False
+        self.current_game_path = ""
 
         # I/O
         self.keys_pressed: Set[int] = set()
@@ -100,12 +100,14 @@ class MainWindow(QtWidgets.QMainWindow):
         options = self.menuBar().addMenu("Options")
 
         # File menu
-        file_loadrom_action = QtGui.QAction("Load ROM...", self)
-        file_loadrom_action.triggered.connect(self._load_rom_trigger)
-        file.addAction(file_loadrom_action)
+        file_load_rom_action = QtGui.QAction("Load ROM...", self)
+        file_load_rom_action.triggered.connect(self._load_rom_trigger)
+        file.addAction(file_load_rom_action)
 
         self.recents_menu = file.addMenu("Recent ROMs")
         self._refresh_recent_roms()
+
+        file.addSeparator()
 
         file_exit_action = QtGui.QAction("Exit", self)
         file_exit_action.triggered.connect(QtWidgets.QApplication.quit)
@@ -241,10 +243,15 @@ class MainWindow(QtWidgets.QMainWindow):
 
             return
 
-        save_state_path = self.root_directory / "save_states"
+        save_state_path = config.get_save_states_directory()
+
+        if not save_state_path:
+            save_state_path = Path(self.current_game_path).parents[0]
+        else:
+            save_state_path = Path(save_state_path)
 
         for i in range(0, 5):
-            save_state = Path(save_state_path / f"{self.game_title}.s{i+1}")
+            save_state = save_state_path / f"{self.game_title}.s{i+1}"
 
             if save_state.is_file():
                 last_modified = datetime.datetime.fromtimestamp(save_state.stat().st_mtime)
@@ -292,15 +299,16 @@ class MainWindow(QtWidgets.QMainWindow):
                                                   "Game Boy files (*.gb *.gbc)")
 
         if rom_path:
-            config.update_last_rom_directory(rom_path)
+            config.set_last_rom_directory(rom_path)
             config.add_recent_rom(rom_path)
             self._refresh_recent_roms()
             sdl_audio.lock_audio()
-            self.game_title = game_boy.insert_cartridge(rom_path)
+            self.game_title = game_boy.insert_cartridge(rom_path, config.get_saves_directory())
 
             if self.game_title:
                 self.game_loaded = True
-                game_boy.power_on()
+                self.current_game_path = rom_path
+                game_boy.power_on(config.get_boot_rom_path())
             else:
                 self.game_loaded = False
                 self.game_title = "Game Boy"
@@ -322,8 +330,13 @@ class MainWindow(QtWidgets.QMainWindow):
         if not self.game_loaded:
             return
 
-        save_state_path = self.root_directory / "save_states"
-        save_state_path.mkdir(parents=True, exist_ok=True)
+        save_state_path = config.get_save_states_directory()
+
+        if not save_state_path:
+            save_state_path = Path(self.current_game_path).parents[0]
+        else:
+            save_state_path = Path(save_state_path)
+
         index = self.sender().text()[13]
         save_state_path = save_state_path / f"{self.game_title}.s{index}"
         game_boy.create_save_state(save_state_path)
@@ -334,8 +347,14 @@ class MainWindow(QtWidgets.QMainWindow):
         """Load a save state from the selected slot."""
         if not self.game_loaded:
             return
+        
+        save_state_path = config.get_save_states_directory()
 
-        save_state_path = self.root_directory / "save_states"
+        if not save_state_path:
+            save_state_path = Path(self.current_game_path).parents[0]
+        else:
+            save_state_path = Path(save_state_path)
+
         index = self.sender().text()[15]
         save_state_path = save_state_path / f"{self.game_title}.s{index}"
         game_boy.load_save_state(save_state_path)
@@ -353,7 +372,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _reset_trigger(self):
         """Restart the Game Boy."""
-        game_boy.power_on()
+        game_boy.power_on(config.get_boot_rom_path())
 
 
     def _window_size_trigger(self):
@@ -381,11 +400,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self._refresh_recent_roms()
 
         sdl_audio.lock_audio()
-        self.game_title = game_boy.insert_cartridge(rom_path)
+        self.game_title = game_boy.insert_cartridge(rom_path, config.get_saves_directory())
 
         if self.game_title:
             self.game_loaded = True
-            game_boy.power_on()
+            self.current_game_path = rom_path
+            game_boy.power_on(config.get_boot_rom_path())
         else:
             self.game_loaded = False
             self.game_title = "Game Boy"

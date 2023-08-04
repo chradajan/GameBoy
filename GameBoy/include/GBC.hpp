@@ -7,21 +7,18 @@ extern "C"
 /// @brief Initialize the Game Boy before use.
 /// @param[in] frameBuffer Frame buffer to write pixel data to. Must be 69120 bytes (width * height * bpp = 160 * 144 * 3).
 /// @param[in] updateScreen  Function to call anytime the frame buffer is ready to be rendered.
-/// @param[in] savePath Path to directory to store save data for games with battery-backed SRAM.
-/// @param[in] bootRomPath Path of Game Boy Color boot ROM file. If not provided, boot up sequence will be skipped.
-void Initialize(uint8_t* frameBuffer,
-                void(*updateScreen)(),
-                char* savePath,
-                char* bootRomPath);
+void Initialize(uint8_t* frameBuffer, void(*updateScreen)());
 
 /// @brief Update the game loaded into the Game Boy.
 /// @param[in] romPath Path to .gb or .gbc file to load.
+/// @param[in] saveDirectory Path to directory to store save data for games with battery-backed SRAM.
 /// @param[out] romName ROM name from cartridge header.
 /// @return True if ROM was successfully loaded.
-bool InsertCartridge(char* romPath, char* romName);
+bool InsertCartridge(char* romPath, char* saveDirectory, char* romName);
 
 /// @brief Load up the game ROM and boot ROM (if they are provided),and reset the Game Boy to its initial power up state.
-void PowerOn();
+/// @param[in] bootRomPath Path of Game Boy Color boot ROM file. If not provided, boot up sequence will be skipped.
+void PowerOn(char* bootRomPath);
 
 /// @brief Unload the current game ROM and create a save file if its battery-backed.
 void PowerOff();
