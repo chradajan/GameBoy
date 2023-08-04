@@ -55,12 +55,14 @@ class PreferencesWindow(QtWidgets.QWidget):
 
 
     def cancel_button_press(self):
+        self.color_tab.cancel()
         self.close()
 
 
     def apply_button_press(self):
-        pass
+        self.color_tab.apply()
 
 
     def defaults_button_press(self):
         self.sound_tab.restore_defaults()
+        self.color_tab.restore_defaults()

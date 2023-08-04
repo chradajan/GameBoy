@@ -9,6 +9,9 @@ class ColorTab(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
+        self.use_custom_colors_box: QtWidgets.QCheckBox = None
+        self.universal_palette_box: QtWidgets.QCheckBox = None
+
         self.drop_downs: List[QtWidgets.QComboBox] = []
 
         self.color_texts: List[QtWidgets.QLineEdit] = []
@@ -35,21 +38,18 @@ class ColorTab(QtWidgets.QWidget):
         palette_selection = QtWidgets.QGroupBox("Palette Selection")
         palette_selection_layout = QtWidgets.QVBoxLayout()
 
-        custom_colors_box = QtWidgets.QCheckBox("Use custom colors")
-        custom_colors_box.toggled.connect(self._custom_colors_toggle)
-        palette_selection_layout.addWidget(custom_colors_box)
+        self.use_custom_colors_box = QtWidgets.QCheckBox("Use custom colors")
+        palette_selection_layout.addWidget(self.use_custom_colors_box)
 
-        universal_palette_box = QtWidgets.QCheckBox("Universal palette")
-        universal_palette_box.setChecked(True)
-        universal_palette_box.toggled.connect(self._use_individual_palettes)
-        palette_selection_layout.addWidget(universal_palette_box)
+        self.universal_palette_box = QtWidgets.QCheckBox("Universal palette")
+        self.universal_palette_box.setChecked(True)
+        palette_selection_layout.addWidget(self.universal_palette_box)
 
-        for index, label_name in enumerate(["Universal", "BG", "WIN", "OBP0", "OBP1"]):
+        for label_name in ["Universal", "BG", "WIN", "OBP0", "OBP1"]:
             label = QtWidgets.QLabel(label_name)
             self.drop_downs.append(QtWidgets.QComboBox())
             self.drop_downs[-1].addItems(color_scheme_names)
             self.drop_downs[-1].setCurrentIndex(0)
-            self.drop_downs[-1].activated.connect(partial(self._set_custom_palette, index))
             palette_selection_layout.addWidget(label)
             palette_selection_layout.addWidget(self.drop_downs[-1])
 
@@ -83,7 +83,6 @@ class ColorTab(QtWidgets.QWidget):
             self.color_buttons[-1].clicked.connect(partial(self._color_clicked, i))
             colors_layout.addWidget(self.color_buttons[-1])
 
-        self.selected_index = 0
         colors.setLayout(colors_layout)
         palette_creation_layout.addWidget(colors, 3, 0, 1, 4)
 
@@ -132,36 +131,20 @@ class ColorTab(QtWidgets.QWidget):
                 dropdown.removeItem(index_to_remove)
 
 
-    def _custom_colors_toggle(self):
-        is_checked = self.sender().isChecked()
-        game_boy.prefer_dmg_colors(is_checked)
-
-
-    def _use_individual_palettes(self):
-        game_boy.use_individual_palettes(not self.sender().isChecked())
-
-
-    def _set_custom_palette(self, index: int):
-        color_schemes = config.get_color_schemes()
-        game_boy.set_custom_palette(index, color_schemes[self.sender().currentText()])
-
-
     def _create_button_clicked(self):
         name, entered = QtWidgets.QInputDialog().getText(self, "Name", "Enter a name for this color scheme")
 
-        if entered:
+        if name and entered:
             config.add_color_scheme(name, self.current_scheme)
             self._update_dropdowns_with_color_schemes(key_to_add=name)
             self.saved_palettes.setCurrentIndex(self.saved_palettes.count() - 1)
+
+        self._set_update_and_delete_clickable()
 
 
     def _update_button_clicked(self):
         key = self.saved_palettes.currentText()
         config.add_color_scheme(key, self.current_scheme)
-        color_schemes = config.get_color_schemes()
-
-        for index, drop_down in enumerate(self.drop_downs):
-            game_boy.set_custom_palette(index, color_schemes[drop_down.currentText()])
 
 
     def _delete_button_clicked(self):
@@ -172,22 +155,24 @@ class ColorTab(QtWidgets.QWidget):
         color_schemes = config.get_color_schemes()
         self.current_scheme = color_schemes[self.saved_palettes.currentText()]
         self._sync_color_widgets(True)
+        self._set_update_and_delete_clickable()
 
 
-    def _saved_palette_changed(self):
-        key = self.sender().currentText()
-        index = self.sender().currentIndex()
-
-        if index < 5:
+    def _set_update_and_delete_clickable(self):
+        if self.saved_palettes.currentIndex() < 5:
             self.update_button.setEnabled(False)
             self.delete_button.setEnabled(False)
         else:
             self.update_button.setEnabled(True)
             self.delete_button.setEnabled(True)
 
+
+    def _saved_palette_changed(self):
+        key = self.sender().currentText()
         color_schemes = config.get_color_schemes()
         self.current_scheme = color_schemes[key]
         self._sync_color_widgets(True)
+        self._set_update_and_delete_clickable()
 
 
     def _color_clicked(self, button_index: int):
@@ -234,3 +219,36 @@ class ColorTab(QtWidgets.QWidget):
             else:
                 self.color_buttons[i].setFixedSize(50, 50)
                 self.color_buttons[i].setStyleSheet(f"background-color: rgb({r}, {g}, {b})")
+
+
+    def cancel(self):
+        color_schemes = config.get_color_schemes()
+        self.current_scheme = color_schemes[self.saved_palettes.currentText()]
+        self._sync_color_widgets(True)
+
+
+    def restore_defaults(self):
+        self.use_custom_colors_box.setChecked(False)
+        self.universal_palette_box.setChecked(True)
+
+        for drop_down in self.drop_downs:
+            drop_down.setCurrentIndex(0)
+
+        color_schemes = config.get_color_schemes()
+        self.current_scheme = color_schemes["Green"]
+        self.selected_index = 0
+        self.saved_palettes.setCurrentIndex(0)
+        self._sync_color_widgets(True)
+        self._set_update_and_delete_clickable()
+
+        self.apply()
+
+
+    def apply(self):
+        game_boy.prefer_dmg_colors(self.use_custom_colors_box.isChecked())
+        game_boy.use_individual_palettes(not self.universal_palette_box.isChecked())
+
+        color_schemes = config.get_color_schemes()
+
+        for index, drop_down in enumerate(self.drop_downs):
+            game_boy.set_custom_palette(index, color_schemes[drop_down.currentText()])
