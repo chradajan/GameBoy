@@ -1,4 +1,7 @@
 #include <Channel3.hpp>
+#include <type_traits>
+
+static_assert(std::is_pod<Channel3>::value, "APU is not POD!");
 
 void Channel3::PowerOn(bool const skipBootRom)
 {
@@ -158,6 +161,16 @@ void Channel3::Write(uint8_t const ioAddr, uint8_t const data)
         default:
             break;
     }
+}
+
+void Channel3::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(this), sizeof(*this));
+}
+
+void Channel3::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(this), sizeof(*this));
 }
 
 void Channel3::Trigger()

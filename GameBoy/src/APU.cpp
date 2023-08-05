@@ -1,8 +1,16 @@
 #include <APU.hpp>
 #include <fstream>
-#include <type_traits>
 
-static_assert(std::is_pod<APU>::value, "APU is not POD!");
+APU::APU() :
+    monoAudio_(false),
+    volume_(1.0),
+    channel1Disabled_(false),
+    channel2Disabled_(false),
+    channel3Disabled_(false),
+    channel4Disabled_(false),
+    apuEnabled_(false)
+{
+}
 
 void APU::Clock()
 {
@@ -272,27 +280,66 @@ void APU::Write(uint8_t ioAddr, uint8_t data)
 
 void APU::Serialize(std::ofstream& out)
 {
-    out.write(reinterpret_cast<char*>(this), sizeof(*this));
+    out.write(reinterpret_cast<char*>(&apuEnabled_), sizeof(apuEnabled_));
+    out.write(reinterpret_cast<char*>(&capacitor_), sizeof(capacitor_));
+
+    out.write(reinterpret_cast<char*>(&divDivider_), sizeof(divDivider_));
+    out.write(reinterpret_cast<char*>(&envelopeDivider_), sizeof(envelopeDivider_));
+    out.write(reinterpret_cast<char*>(&soundLengthDivider_), sizeof(soundLengthDivider_));
+    out.write(reinterpret_cast<char*>(&ch1FreqDivider_), sizeof(ch1FreqDivider_));
+
+    out.write(reinterpret_cast<char*>(&mix1Left_), sizeof(mix1Left_));
+    out.write(reinterpret_cast<char*>(&mix1Right_), sizeof(mix1Right_));
+    out.write(reinterpret_cast<char*>(&mix2Left_), sizeof(mix2Left_));
+    out.write(reinterpret_cast<char*>(&mix2Right_), sizeof(mix2Right_));
+    out.write(reinterpret_cast<char*>(&mix3Left_), sizeof(mix3Left_));
+    out.write(reinterpret_cast<char*>(&mix3Right_), sizeof(mix3Right_));
+    out.write(reinterpret_cast<char*>(&mix4Left_), sizeof(mix4Left_));
+    out.write(reinterpret_cast<char*>(&mix4Right_), sizeof(mix4Right_));
+
+    out.write(reinterpret_cast<char*>(&leftVolume_), sizeof(leftVolume_));
+    out.write(reinterpret_cast<char*>(&rightVolume_), sizeof(rightVolume_));
+
+    out.write(reinterpret_cast<char*>(&DIV_), sizeof(DIV_));
+    out.write(reinterpret_cast<char*>(&NR50_), sizeof(NR50_));
+    out.write(reinterpret_cast<char*>(&NR51_), sizeof(NR51_));
+
+    channel1_.Serialize(out);
+    channel2_.Serialize(out);
+    channel3_.Serialize(out);
+    channel4_.Serialize(out);
 }
 
 void APU::Deserialize(std::ifstream& in)
 {
-    // Don't load GUI overwrites from save state
-    bool monoAudio = monoAudio_;
-    float volume = volume_;
-    bool channel1Disabled = channel1Disabled_;
-    bool channel2Disabled = channel2Disabled_;
-    bool channel3Disabled = channel3Disabled_;
-    bool channel4Disabled = channel4Disabled_;
+    in.read(reinterpret_cast<char*>(&apuEnabled_), sizeof(apuEnabled_));
+    in.read(reinterpret_cast<char*>(&capacitor_), sizeof(capacitor_));
 
-    in.read(reinterpret_cast<char*>(this), sizeof(*this));
+    in.read(reinterpret_cast<char*>(&divDivider_), sizeof(divDivider_));
+    in.read(reinterpret_cast<char*>(&envelopeDivider_), sizeof(envelopeDivider_));
+    in.read(reinterpret_cast<char*>(&soundLengthDivider_), sizeof(soundLengthDivider_));
+    in.read(reinterpret_cast<char*>(&ch1FreqDivider_), sizeof(ch1FreqDivider_));
 
-    monoAudio_ = monoAudio;
-    volume_ = volume;
-    channel1Disabled_ = channel1Disabled;
-    channel2Disabled_ = channel2Disabled;
-    channel3Disabled_ = channel3Disabled;
-    channel4Disabled_ = channel4Disabled;
+    in.read(reinterpret_cast<char*>(&mix1Left_), sizeof(mix1Left_));
+    in.read(reinterpret_cast<char*>(&mix1Right_), sizeof(mix1Right_));
+    in.read(reinterpret_cast<char*>(&mix2Left_), sizeof(mix2Left_));
+    in.read(reinterpret_cast<char*>(&mix2Right_), sizeof(mix2Right_));
+    in.read(reinterpret_cast<char*>(&mix3Left_), sizeof(mix3Left_));
+    in.read(reinterpret_cast<char*>(&mix3Right_), sizeof(mix3Right_));
+    in.read(reinterpret_cast<char*>(&mix4Left_), sizeof(mix4Left_));
+    in.read(reinterpret_cast<char*>(&mix4Right_), sizeof(mix4Right_));
+
+    in.read(reinterpret_cast<char*>(&leftVolume_), sizeof(leftVolume_));
+    in.read(reinterpret_cast<char*>(&rightVolume_), sizeof(rightVolume_));
+
+    in.read(reinterpret_cast<char*>(&DIV_), sizeof(DIV_));
+    in.read(reinterpret_cast<char*>(&NR50_), sizeof(NR50_));
+    in.read(reinterpret_cast<char*>(&NR51_), sizeof(NR51_));
+
+    channel1_.Deserialize(in);
+    channel2_.Deserialize(in);
+    channel3_.Deserialize(in);
+    channel4_.Deserialize(in);
 }
 
 void APU::EnableSoundChannel(int const channel, bool const enabled)

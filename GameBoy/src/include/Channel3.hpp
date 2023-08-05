@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdint>
+#include <fstream>
 
 class Channel3
 {
@@ -18,6 +19,9 @@ public:
 
     uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
+
+    void Serialize(std::ofstream& out);
+    void Deserialize(std::ifstream& in);
 
 private:
     void Trigger();

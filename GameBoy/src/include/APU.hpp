@@ -10,6 +10,8 @@
 class APU
 {
 public:
+    APU();
+
     void Clock();
     void PowerOn(bool skipBootRom);
 

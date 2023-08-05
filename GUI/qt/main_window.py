@@ -372,7 +372,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _reset_trigger(self):
         """Restart the Game Boy."""
+        sdl_audio.lock_audio()
         game_boy.power_on(config.get_boot_rom_path())
+        sdl_audio.unlock_audio()
 
 
     def _window_size_trigger(self):

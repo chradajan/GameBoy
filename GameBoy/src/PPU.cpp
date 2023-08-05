@@ -15,7 +15,10 @@ PaletteArray OBP0_PALETTE = DMG_PALETTE;
 PaletteArray OBP1_PALETTE = DMG_PALETTE;
 
 PPU::PPU(bool const& cgbMode) :
+    preferDmgColors_(false),
+    useIndividualPalettes_(false),
     cgbMode_(cgbMode),
+    frameReady_(false),
     pixelFifoPtr_(std::make_unique<PixelFIFO>(this))
 {
 }

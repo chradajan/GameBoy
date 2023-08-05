@@ -1,4 +1,7 @@
 #include <Channel2.hpp>
+#include <type_traits>
+
+static_assert(std::is_pod<Channel2>::value, "APU is not POD!");
 
 constexpr int8_t DUTY_CYCLE[4][8] =
 {
@@ -135,6 +138,16 @@ void Channel2::Write(uint8_t ioAddr, uint8_t data)
         default:
             break;
     }
+}
+
+void Channel2::Serialize(std::ofstream& out)
+{
+    out.write(reinterpret_cast<char*>(this), sizeof(*this));
+}
+
+void Channel2::Deserialize(std::ifstream& in)
+{
+    in.read(reinterpret_cast<char*>(this), sizeof(*this));
 }
 
 void Channel2::Trigger()
