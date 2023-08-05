@@ -126,8 +126,8 @@ class KeyBindingsTab(QtWidgets.QWidget):
         dialog = KeyboardBindingDialog(joypad_button)
         dialog.exec()
 
-        key_bindings = config.get_keyboard_bindings()
-        self.keyboard_buttons[index].setText(QtCore.Qt.Key(key_bindings[joypad_button]).name[4:])
+        keyboard_bindings = config.get_keyboard_bindings()
+        self.keyboard_buttons[index].setText(QtCore.Qt.Key(keyboard_bindings[joypad_button]).name[4:])
 
 
     def _gamepad_button_trigger(self, index: int, joypad_button: str):
@@ -136,3 +136,14 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
         gamepad_bindings = config.get_gamepad_bindings()
         self.gamepad_buttons[index].setText(gamepad_bindings[joypad_button])
+
+
+    def restore_defaults(self):
+        config.restore_default_controls()
+        gamepad_bindings = config.get_gamepad_bindings()
+        keyboard_bindings = config.get_keyboard_bindings()
+
+        for index, ((_, gamepad_binding), (_, keyboard_binding))\
+            in enumerate(zip(gamepad_bindings.items(), keyboard_bindings.items())):
+            self.gamepad_buttons[index].setText(gamepad_binding)
+            self.keyboard_buttons[index].setText(QtCore.Qt.Key(keyboard_binding).name[4:])

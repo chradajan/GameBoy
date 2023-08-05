@@ -6,6 +6,28 @@ CONFIG = configparser.ConfigParser()
 CONFIG.optionxform = str
 CONFIG_PATH: Path = None
 
+DEFAULT_GAMEPAD_BINDINGS = {
+    "up": "d_pad_up",
+    "down": "d_pad_down",
+    "left": "d_pad_left",
+    "right": "d_pad_right",
+    "start": "start",
+    "select": "select",
+    "b": "b",
+    "a": "a",
+}
+
+DEFAULT_KEYBOARD_BINDINGS = {
+    "up": 87,
+    "down": 83,
+    "left": 65,
+    "right": 68,
+    "start": 16777220,
+    "select": 16777248,
+    "b": 75,
+    "a": 76,
+}
+
 def load_config(config_path: Path):
     """Load the .ini file from the specified path, or create a default one if it doesn't exist.
 
@@ -49,29 +71,21 @@ def load_config(config_path: Path):
             "volume": 100,
         }
 
-        CONFIG["GamepadControls"] = {
-            "down": "d_pad_down",
-            "up": "d_pad_up",
-            "left": "d_pad_left",
-            "right": "d_pad_right",
-            "start": "start",
-            "select": "select",
-            "b": "b",
-            "a": "a",
-        }
-
-        CONFIG["Controls"] = {
-            "down": 83,
-            "up": 87,
-            "left": 65,
-            "right": 68,
-            "start": 16777220,
-            "select": 16777248,
-            "b": 75,
-            "a": 76,
-        }
+        CONFIG["GamepadControls"] = DEFAULT_GAMEPAD_BINDINGS
+        CONFIG["KeyboardControls"] = DEFAULT_KEYBOARD_BINDINGS
 
         save_config()
+
+
+def restore_default_controls():
+    """Restore the default keyboard and gamepad bindings."""
+    global CONFIG
+    global DEFAULT_GAMEPAD_BINDINGS
+    global DEFAULT_KEYBOARD_BINDINGS
+
+    CONFIG["GamepadControls"] = DEFAULT_GAMEPAD_BINDINGS
+    CONFIG["KeyboardControls"] = DEFAULT_KEYBOARD_BINDINGS
+    save_config()
 
 
 def get_keyboard_bindings() -> Dict[str, int]:
@@ -83,7 +97,7 @@ def get_keyboard_bindings() -> Dict[str, int]:
     global CONFIG
     bindings = {}
 
-    for key, scancode in CONFIG["Controls"].items():
+    for key, scancode in CONFIG["KeyboardControls"].items():
         bindings[key] = int(scancode)
 
     return bindings
@@ -97,7 +111,7 @@ def set_keyboard_binding(key: str, scancode: int):
         scancode: Keyboard key scancode to bind.
     """
     global CONFIG
-    CONFIG["Controls"][key] = str(scancode)
+    CONFIG["KeyboardControls"][key] = str(scancode)
     save_config()
 
 
