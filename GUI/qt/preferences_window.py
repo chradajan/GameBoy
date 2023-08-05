@@ -66,3 +66,4 @@ class PreferencesWindow(QtWidgets.QWidget):
     def defaults_button_press(self):
         self.sound_tab.restore_defaults()
         self.color_tab.restore_defaults()
+        self.paths_tab.restore_defaults()

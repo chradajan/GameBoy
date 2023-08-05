@@ -82,3 +82,13 @@ class PathsTab(QtWidgets.QWidget):
         if save_state_directory_path:
             self.save_state_directory_line_edit.setText(save_state_directory_path)
             config.set_save_states_directory(save_state_directory_path)
+
+
+    def restore_defaults(self):
+        self.boot_rom_line_edit.setText("")
+        self.save_directory_line_edit.setText("")
+        self.save_state_directory_line_edit.setText("")
+
+        config.set_boot_rom_path("")
+        config.set_saves_directory("")
+        config.set_save_states_directory("")
