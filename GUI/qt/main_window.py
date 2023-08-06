@@ -19,7 +19,7 @@ class MainWindow(QtWidgets.QMainWindow):
     window_sizes = {"2x2": 2, "3x3": 3, "4x4": 4, "5x5": 5, "6x6": 6}
     game_speeds = {"x1/4": 0.25, "x1/2": 0.5, "x1": 1.0, "x2": 2.0, "x3": 3.0, "x4": 4.0}
 
-    def __init__(self):
+    def __init__(self, icon_directory: Path):
         super().__init__()
         self.game_speed = 1.0
 
@@ -34,6 +34,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.game_title = "Game Boy"
         self.game_loaded = False
         self.current_game_path = ""
+        self.icon_directory = icon_directory
 
         # I/O
         self.keys_pressed: Set[int] = set()
@@ -91,8 +92,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _init_ui(self):
         # Set window settings
-        self.setWindowTitle(f"{self.game_title} (0 fps)")
+        self.setWindowTitle(f"{self.game_title}")
         self.setContentsMargins(0, 0, 0, 0)
+        self.setWindowIcon(QtGui.QIcon(str(self.icon_directory / "gameboy.ico")))
 
         # Create menu bar
         file = self.menuBar().addMenu("File")
@@ -221,7 +223,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def _update_fps_counter(self):
         """Update the fps counter in the window title based on performance over the last second."""
-        self.setWindowTitle(f"{self.game_title} ({self.frame_counter} fps)")
+        if self.game_loaded:
+            self.setWindowTitle(f"{self.game_title} ({self.frame_counter} fps)")
+
         self.frame_counter = 0
 
 
@@ -391,7 +395,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def _preferences_window_trigger(self):
         "Open the preferences window."
         if self.preferences_window is None:
-            self.preferences_window = PreferencesWindow()
+            self.preferences_window = PreferencesWindow(self.icon_directory)
 
         self.preferences_window.show()
 

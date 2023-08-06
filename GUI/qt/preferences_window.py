@@ -1,4 +1,6 @@
-from PyQt6 import QtCore, QtWidgets
+from pathlib import Path
+
+from PyQt6 import QtCore, QtGui, QtWidgets
 
 import game_boy.game_boy as game_boy
 from qt.color_tab import ColorTab
@@ -7,12 +9,14 @@ from qt.paths_tab import PathsTab
 from qt.sound_tab import SoundTab
 
 class PreferencesWindow(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, icon_directory: Path):
         super().__init__()
+        self.icon_directory = icon_directory
 
         self._init_ui()
         self.setWindowFlags(QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint)
         self.setWindowTitle("Preferences")
+        self.setWindowIcon(QtGui.QIcon(str(self.icon_directory / "gear.ico")))
 
 
     def _init_ui(self):
@@ -21,7 +25,7 @@ class PreferencesWindow(QtWidgets.QWidget):
         # Tabs
         self.sound_tab = SoundTab()
         self.color_tab = ColorTab()
-        self.key_bindings_tab = KeyBindingsTab()
+        self.key_bindings_tab = KeyBindingsTab(self.icon_directory)
         self.paths_tab = PathsTab()
 
         tab_widget = QtWidgets.QTabWidget(self)

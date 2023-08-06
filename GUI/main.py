@@ -34,8 +34,10 @@ def main() -> int:
     volume = config.get_saved_volume()
     game_boy.set_volume(volume / 100)
 
+    icon_directory = config_path / "resources"
+
     app = QtWidgets.QApplication([])
-    MAIN_WINDOW = MainWindow()
+    MAIN_WINDOW = MainWindow(icon_directory)
 
     sdl_audio.unlock_audio()
     val = app.exec()

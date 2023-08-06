@@ -1,4 +1,5 @@
 from functools import partial
+from pathlib import Path
 from typing import List
 
 from PyQt6 import QtCore, QtGui, QtWidgets
@@ -9,12 +10,13 @@ import controller.controller as controller
 GAMEPAD_INPUT: str = None
 
 class KeyboardBindingDialog(QtWidgets.QDialog):
-    def __init__(self, joypad_button: str):
+    def __init__(self, joypad_button: str, icon_directory: Path):
         super().__init__()
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
         self.setFixedSize(150, 50)
+        self.setWindowIcon(QtGui.QIcon(str(icon_directory / "keyboard.ico")))
 
         layout = QtWidgets.QVBoxLayout()
         label = QtWidgets.QLabel("Press a key...")
@@ -42,12 +44,13 @@ class GetGamepadRebind(QtCore.QThread):
 
 
 class GamepadBindingDialog(QtWidgets.QDialog):
-    def __init__(self, joypad_button: str):
+    def __init__(self, joypad_button: str, icon_directory: Path):
         super().__init__()
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
         self.setFixedSize(150, 50)
+        self.setWindowIcon(QtGui.QIcon(str(icon_directory / "gamepad.ico")))
 
         layout = QtWidgets.QVBoxLayout()
         label = QtWidgets.QLabel("Press a button..")
@@ -84,8 +87,10 @@ class GamepadBindingDialog(QtWidgets.QDialog):
 
 
 class KeyBindingsTab(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, icon_directory: Path):
         super().__init__()
+
+        self.icon_directory = icon_directory
 
         self.button_to_bind: str = None
         self.keyboard_index_to_update: int = None
@@ -136,7 +141,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
 
     def _keyboard_button_trigger(self, index: int, joypad_button: str):
-        dialog = KeyboardBindingDialog(joypad_button)
+        dialog = KeyboardBindingDialog(joypad_button, self.icon_directory)
         dialog.exec()
 
         keyboard_bindings = config.get_keyboard_bindings()
@@ -144,7 +149,7 @@ class KeyBindingsTab(QtWidgets.QWidget):
 
 
     def _gamepad_button_trigger(self, index: int, joypad_button: str):
-        dialog = GamepadBindingDialog(joypad_button)
+        dialog = GamepadBindingDialog(joypad_button, self.icon_directory)
         dialog.exec()
 
         gamepad_bindings = config.get_gamepad_bindings()
