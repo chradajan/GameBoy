@@ -10,21 +10,49 @@
 class APU
 {
 public:
+    /// @brief Constructor to initialize GUI overrides.
     APU();
 
+    /// @brief Clock each sound channel 1 m-cycle.
     void Clock();
+
+    /// @brief Initialize the APU to its power on state.
+    /// @param[in] skipBootRom Whether its being powered on into the boot ROM or straight into game.
     void PowerOn(bool skipBootRom);
 
+    /// @brief Collect the current output of each channel and mix into a sample.
+    /// @param[out] left Pointer to left audio output to set.
+    /// @param[out] right Pointer to right audio output to set.
     void GetAudioSample(float* left, float* right);
 
+    /// @brief Clock the DIV register and advance the frame sequencer if necessary.
+    /// @param[in] doubleSpeed True if system is running in double speed mode. Used to determine when to advance frame sequencer.
     void ClockDIV(bool doubleSpeed);
+
+    /// @brief Reset the DIV register and advance the frame sequencer if necessary.
+    /// @param[in] doubleSpeed True if system is running in double speed mode. Used to determine whether to advance frame sequencer.
     void ResetDIV(bool doubleSpeed);
+
+    /// @brief Get the DIV register.
+    /// @return Current value of DIV.
     uint8_t GetDIV() const { return DIV_; }
 
+    /// @brief Route read request to the appropiate APU register.
+    /// @param[in] ioAddr Lower byte of address to read.
+    /// @return Current value of selected register.
     uint8_t Read(uint8_t ioAddr);
+
+    /// @brief Route write request to the appropriate APU register.
+    /// @param[in] ioAddr Lower byte of address to write.
+    /// @param[in] data Data to write to register.
     void Write(uint8_t ioAddr, uint8_t data);
 
+    /// @brief Write the current state of the APU to disk.
+    /// @param[in] out Stream to write state to.
     void Serialize(std::ofstream& out);
+
+    /// @brief Restore the APU state to a previously serialized one.
+    /// @param[in] in Stream to restore state from.
     void Deserialize(std::ifstream& in);
 
     /// @brief Set whether a specific sound channel should be mixed in to the APU output.
@@ -33,15 +61,20 @@ public:
     void EnableSoundChannel(int channel, bool enabled);
 
     /// @brief Choose whether to output
-    /// @param monoAudio True to use mono, false to use stereo.
+    /// @param[in] monoAudio True to use mono, false to use stereo.
     void SetMonoAudio(bool monoAudio) { monoAudio_ = monoAudio; }
 
     /// @brief Set the volume of the APU output.
-    /// @param volume Volume of output (between 0.0 and 1.0).
+    /// @param[in] volume Volume of output (between 0.0 and 1.0).
     void SetVolume(float volume) { volume_ = volume; }
 
 private:
+    /// @brief Simulate the APU's high pass filter that pulls output signal towards 0.
+    /// @param[in] input Current APU output value.
+    /// @return Output from high pass filter.
     float HPF(float input);
+
+    /// @brief Clock the frame sequencer.Clocks the envelope, frequency sweep, and length timer of channels that support those.
     void AdvanceFrameSequencer();
 
     // GUI overrides
