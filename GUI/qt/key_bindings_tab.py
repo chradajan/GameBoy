@@ -14,10 +14,12 @@ class KeyboardBindingDialog(QtWidgets.QDialog):
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
-        self.setWindowFlags(QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint)
+        self.setFixedSize(150, 50)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel("Press a key..."))
+        label = QtWidgets.QLabel("Press a key...")
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
         self.setLayout(layout)
 
 
@@ -45,10 +47,12 @@ class GamepadBindingDialog(QtWidgets.QDialog):
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
-        self.setWindowFlags(QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint)
+        self.setFixedSize(150, 50)
 
         layout = QtWidgets.QVBoxLayout()
-        layout.addWidget(QtWidgets.QLabel("Press a button..."))
+        label = QtWidgets.QLabel("Press a button..")
+        label.setAlignment(QtCore.Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(label)
         self.setLayout(layout)
 
         self.get_binding_thread = GetGamepadRebind()
