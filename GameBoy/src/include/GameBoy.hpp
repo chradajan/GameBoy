@@ -222,7 +222,7 @@ private:
 
     /// @brief Check the current speed mode.
     /// @return True if running in double speed, false if normal speed.
-    bool DoubleSpeedMode() const { return ioReg_[IO::KEY1] & 0x80; }
+    bool DoubleSpeedMode() const { return cgbMode_ && (ioReg_[IO::KEY1] & 0x80); }
 
     bool PrepareSpeedSwitch() const { return ioReg_[IO::KEY1] & 0x01; }
 

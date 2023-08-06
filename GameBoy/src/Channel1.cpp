@@ -15,6 +15,11 @@ void Channel1::PowerOn(bool const skipBootRom)
 {
     if (skipBootRom)
     {
+        dacEnabled_ = true;
+        triggered_ = true;
+        frequencySweepOverflow_ = false;
+        lengthTimerExpired_ = false;
+
         NR10_ = 0x80;
         NR11_ = 0xBF;
         NR12_ = 0xF3;
@@ -23,6 +28,9 @@ void Channel1::PowerOn(bool const skipBootRom)
     }
     else
     {
+        dacEnabled_ = false;
+        triggered_ = false;
+
         NR10_ = 0x00;
         NR11_ = 0x00;
         NR12_ = 0x00;
@@ -31,8 +39,6 @@ void Channel1::PowerOn(bool const skipBootRom)
     }
 
     dutyStep_ = 0;
-    dacEnabled_ = false;
-    triggered_ = false;
 }
 
 void Channel1::Clock()
