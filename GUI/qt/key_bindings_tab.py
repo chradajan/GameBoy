@@ -51,6 +51,11 @@ class GamepadBindingDialog(QtWidgets.QMessageBox):
         self.get_binding_thread.finished.connect(self._update_binding)
         self.get_binding_thread.start()
 
+
+    def __del__(self):
+        self.get_binding_thread.terminate()
+
+
     def _update_binding(self):
         global GAMEPAD_INPUT
 

@@ -41,77 +41,80 @@ def get_first_gamepad_key() -> str:
     Returns:
         Name of gamepad button pressed.
     """
-    while True:
-        events = inputs.get_gamepad()
-        for event in events:
-            if event.code == 'ABS_Y':
-                val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
+    try:
+        while True:
+            events = inputs.get_gamepad()
+            for event in events:
+                if event.code == 'ABS_Y':
+                    val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
 
-                if val > 0.15:
-                    return "left_stick_y_up"
-                elif val < -0.15:
-                    return "left_stick_y_down"
-            elif event.code == 'ABS_X':
-                val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
+                    if val > 0.15:
+                        return "left_stick_y_up"
+                    elif val < -0.15:
+                        return "left_stick_y_down"
+                elif event.code == 'ABS_X':
+                    val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
 
-                if val > 0.15:
-                    return "left_stick_x_right"
-                elif val < -0.15:
-                    return "left_stick_x_left"
-            elif event.code == 'ABS_RY':
-                val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
+                    if val > 0.15:
+                        return "left_stick_x_right"
+                    elif val < -0.15:
+                        return "left_stick_x_left"
+                elif event.code == 'ABS_RY':
+                    val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
 
-                if val > 0.15:
-                    return "right_stick_y_up"
-                elif val < -0.15:
-                    return "right_stick_y_down"
-            elif event.code == 'ABS_RX':
-                val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
+                    if val > 0.15:
+                        return "right_stick_y_up"
+                    elif val < -0.15:
+                        return "right_stick_y_down"
+                elif event.code == 'ABS_RX':
+                    val = event.state / MAX_JOYSTICK_VALUE # [-1, 1]
 
-                if val > 0.15:
-                    return "right_stick_x_right"
-                elif val < -0.15:
-                    return "right_stick_x_left"
-            elif event.code == 'ABS_Z':
-                val = event.state / MAX_TRIGGER_VALUE # [0, 1]
+                    if val > 0.15:
+                        return "right_stick_x_right"
+                    elif val < -0.15:
+                        return "right_stick_x_left"
+                elif event.code == 'ABS_Z':
+                    val = event.state / MAX_TRIGGER_VALUE # [0, 1]
 
-                if val > 0.03:
-                    return "left_trigger"
-            elif event.code == 'ABS_RZ':
-                val = event.state / MAX_TRIGGER_VALUE # [0, 1]
+                    if val > 0.03:
+                        return "left_trigger"
+                elif event.code == 'ABS_RZ':
+                    val = event.state / MAX_TRIGGER_VALUE # [0, 1]
 
-                if val > 0.03:
-                    return "right_trigger"
-            elif event.code == 'BTN_TL':
-                return "left_bumper"
-            elif event.code == 'BTN_TR':
-                return "right_bumper"
-            elif event.code == 'BTN_SOUTH':
-                return "a"
-            elif event.code == 'BTN_EAST':
-                return "b"
-            elif event.code == 'BTN_WEST':
-                return "x"
-            elif event.code == 'BTN_NORTH':
-                return "y"
-            elif event.code == 'BTN_THUMBL':
-                return "left_thumb"
-            elif event.code == 'BTN_THUMBR':
-                return "right_thumb"
-            elif event.code == 'BTN_SELECT':
-                return "start"
-            elif event.code == 'BTN_START':
-                return "select"
-            elif event.code == 'ABS_HAT0Y':
-                if event.state == 1:
-                    return "d_pad_down"
-                elif event.state == -1:
-                    return "d_pad_up"
-            elif event.code == 'ABS_HAT0X':
-                if event.state == 1:
-                    return "d_pad_right"
-                elif event.state == -1:
-                    return "d_pad_left"
+                    if val > 0.03:
+                        return "right_trigger"
+                elif event.code == 'BTN_TL':
+                    return "left_bumper"
+                elif event.code == 'BTN_TR':
+                    return "right_bumper"
+                elif event.code == 'BTN_SOUTH':
+                    return "a"
+                elif event.code == 'BTN_EAST':
+                    return "b"
+                elif event.code == 'BTN_WEST':
+                    return "x"
+                elif event.code == 'BTN_NORTH':
+                    return "y"
+                elif event.code == 'BTN_THUMBL':
+                    return "left_thumb"
+                elif event.code == 'BTN_THUMBR':
+                    return "right_thumb"
+                elif event.code == 'BTN_SELECT':
+                    return "start"
+                elif event.code == 'BTN_START':
+                    return "select"
+                elif event.code == 'ABS_HAT0Y':
+                    if event.state == 1:
+                        return "d_pad_down"
+                    elif event.state == -1:
+                        return "d_pad_up"
+                elif event.code == 'ABS_HAT0X':
+                    if event.state == 1:
+                        return "d_pad_right"
+                    elif event.state == -1:
+                        return "d_pad_left"
+    except inputs.UnpluggedError:
+            time.sleep(5)
 
 
 def monitor_gamepad(gamepad: Gamepad):
