@@ -8,15 +8,17 @@ import controller.controller as controller
 
 GAMEPAD_INPUT: str = None
 
-class KeyboardBindingDialog(QtWidgets.QMessageBox):
+class KeyboardBindingDialog(QtWidgets.QDialog):
     def __init__(self, joypad_button: str):
         super().__init__()
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
-        self.setText("Press a key...")
-        self.setInformativeText("Press esc to cancel.")
-        self.setStandardButtons(QtWidgets.QMessageBox.StandardButton.NoButton)
+        self.setWindowFlags(QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Press a key..."))
+        self.setLayout(layout)
 
 
     def keyPressEvent(self, event: QtGui.QKeyEvent | None):
@@ -37,15 +39,17 @@ class GetGamepadRebind(QtCore.QThread):
         GAMEPAD_INPUT = controller.get_first_gamepad_key()
 
 
-class GamepadBindingDialog(QtWidgets.QMessageBox):
+class GamepadBindingDialog(QtWidgets.QDialog):
     def __init__(self, joypad_button: str):
         super().__init__()
 
         self.joypad_button_to_bind = joypad_button
         self.setWindowTitle(joypad_button.capitalize())
-        self.setText("Press a button...")
-        self.setInformativeText("Press esc to cancel.")
-        self.setStandardButtons(QtWidgets.QMessageBox.StandardButton.NoButton)
+        self.setWindowFlags(QtCore.Qt.WindowType.MSWindowsFixedSizeDialogHint)
+
+        layout = QtWidgets.QVBoxLayout()
+        layout.addWidget(QtWidgets.QLabel("Press a button..."))
+        self.setLayout(layout)
 
         self.get_binding_thread = GetGamepadRebind()
         self.get_binding_thread.finished.connect(self._update_binding)
