@@ -20,6 +20,15 @@ When running original non-color Game Boy games, the boot ROM calculates a checks
 
 ## Screenshots
 
+| | | |
+|:-------------------------:|:-------------------------:|:-------------------------:|
+| <img width="500" alt="Palette assigned by boot ROM" src="resources/TopLeft.PNG"> | <img width="500" alt="Green Preset" src="resources/TopMiddle.PNG"> | <img width="500" alt="Gray Preset" src="resources/TopRight.PNG"> |
+| <img width="500" alt="Blue Preset" src="resources/BottomLeft.PNG"> |  <img width="500" alt="Red Preset" src="resources/BottomMiddle.PNG"> |<img width="500" alt="Yellow Preset" src="resources/BottomRight.PNG"> |
+
+![Pokemon Yellow](resources/PokemonYellow.mp4)
+
+![The Legend of Zelda: Link's Awakening DX](resources/Zelda.mp4)
+
 ## Features
 
 Save states
@@ -27,6 +36,10 @@ Save states
 - Store up to 5 save states per game.
 - Quickly create a save state by pressing a key between 1-5 and load it with Ctrl/Cmd + the corresponding number key.
 - Save states cannot be created or loaded during boot ROM animation.
+
+Game Speed
+
+- Dynamically speed or or slow down gameplay through changing the master clock multiplier.
 
 Sound controls
 
