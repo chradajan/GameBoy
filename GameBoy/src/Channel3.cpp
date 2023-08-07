@@ -29,14 +29,17 @@ void Channel3::PowerOn(bool const skipBootRom)
 
 void Channel3::Clock()
 {
-    ++periodDivider_;
-
-    if (periodDivider_ == 0x0800)
+    for (uint_fast8_t i = 0; i < 2; ++i)
     {
-        periodDivider_ = GetPeriod();
-        sampleIndex_ = (sampleIndex_ + 1) % 32;
+        ++periodDivider_;
 
-        delayPlayback_ = false;
+        if (periodDivider_ == 0x0800)
+        {
+            periodDivider_ = GetPeriod();
+            sampleIndex_ = (sampleIndex_ + 1) % 32;
+
+            delayPlayback_ = false;
+        }
     }
 }
 
