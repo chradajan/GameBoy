@@ -27,6 +27,8 @@ When running original non-color Game Boy games, the boot ROM calculates a checks
 
 ![The Legend of Zelda: Link's Awakening DX](resources/ZeldaDX.gif)
 
+https://github.com/chradajan/GameBoy/assets/9095232/ca559670-7785-457e-a31d-3421324495be
+
 ## Features
 
 Save states
