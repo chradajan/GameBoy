@@ -25,9 +25,7 @@ When running original non-color Game Boy games, the boot ROM calculates a checks
 | <img width="500" alt="Palette assigned by boot ROM" src="resources/TopLeft.PNG"> | <img width="500" alt="Green Preset" src="resources/TopMiddle.PNG"> | <img width="500" alt="Gray Preset" src="resources/TopRight.PNG"> |
 | <img width="500" alt="Blue Preset" src="resources/BottomLeft.PNG"> |  <img width="500" alt="Red Preset" src="resources/BottomMiddle.PNG"> |<img width="500" alt="Yellow Preset" src="resources/BottomRight.PNG"> |
 
-![Pokemon Yellow](resources/PokemonYellow.mov)
-
-![The Legend of Zelda: Link's Awakening DX](resources/ZeldaDX.mov)
+![The Legend of Zelda: Link's Awakening DX](resources/ZeldaDX.gif)
 
 ## Features
 
