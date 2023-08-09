@@ -1,5 +1,39 @@
 #include <APU.hpp>
+#include <cmath>
 #include <fstream>
+#include <vector>
+
+static std::vector<float> LEFT_SAMPLE_BUFFER;
+static std::vector<float> RIGHT_SAMPLE_BUFFER;
+
+static float LAST_LEFT_SAMPLE = 0.0;
+static float LAST_RIGHT_SAMPLE = 0.0;
+
+static int DOWNSAMPLED_RATE = 44100;
+static constexpr float DELTA_T = 1.0 / 1048576;  // Time between samples
+static float TAU = 1.0 / (DOWNSAMPLED_RATE / 2);  // Time constant
+static float ALPHA = DELTA_T / TAU;
+
+static std::vector<float> LPF(std::vector<float> const& input, float& lastSample)
+{
+    std::vector<float> output;
+    output.reserve(input.size());
+
+    float out = lastSample;
+
+    for (size_t i = 0; i < input.size(); ++i)
+    {
+        out += ALPHA * (input[i] - out);
+        output.push_back(out);
+    }
+
+    if (!output.empty())
+    {
+        lastSample = output[output.size() - 1];
+    }
+
+    return output;
+}
 
 APU::APU() :
     monoAudio_(false),
@@ -16,13 +50,111 @@ void APU::Clock()
 {
     if (!apuEnabled_)
     {
+        LEFT_SAMPLE_BUFFER.push_back(0.0);
+        RIGHT_SAMPLE_BUFFER.push_back(0.0);
         return;
     }
 
-    channel1_.Clock();
-    channel2_.Clock();
-    channel3_.Clock();
-    channel4_.Clock();
+    float channel1Sample = channel1_.Clock();
+    float channel2Sample = channel2_.Clock();
+    float channel3Sample = channel3_.Clock();
+    float channel4Sample = channel4_.Clock();
+
+    uint_fast8_t leftCount = 0;
+    uint_fast8_t rightCount = 0;
+
+    float left_sample = 0.0;
+    float right_sample = 0.0;
+
+    if (!channel1Disabled_)
+    {
+        if (monoAudio_ && (mix1Left_ || mix1Right_))
+        {
+            left_sample += channel1Sample;
+            ++leftCount;
+
+            right_sample += channel1Sample;
+            ++rightCount;
+        }
+        else
+        {
+            if (mix1Left_) { left_sample += channel1Sample; ++leftCount; }
+            if (mix1Right_) { right_sample += channel1Sample; ++rightCount; }
+        }
+    }
+
+    if (!channel2Disabled_)
+    {
+        if (monoAudio_ && (mix2Left_ || mix2Right_))
+        {
+            left_sample += channel2Sample;
+            ++leftCount;
+
+            right_sample += channel2Sample;
+            ++rightCount;
+        }
+        else
+        {
+            if (mix2Left_) { left_sample += channel2Sample; ++leftCount; }
+            if (mix2Right_) { right_sample += channel2Sample; ++rightCount; }
+        }
+    }
+
+    if (!channel3Disabled_)
+    {
+        if (monoAudio_ && (mix3Left_ || mix3Right_))
+        {
+            left_sample += channel3Sample;
+            ++leftCount;
+
+            right_sample += channel3Sample;
+            ++rightCount;
+        }
+        else
+        {
+            if (mix3Left_) { left_sample += channel3Sample; ++leftCount; }
+            if (mix3Right_) { right_sample += channel3Sample; ++rightCount; }
+        }
+    }
+
+    if (!channel4Disabled_)
+    {
+        if (monoAudio_ && (mix4Left_ || mix4Right_))
+        {
+            left_sample += channel4Sample;
+            ++leftCount;
+
+            right_sample += channel4Sample;
+            ++rightCount;
+        }
+        else
+        {
+            if (mix4Left_) { left_sample += channel4Sample; ++leftCount; }
+            if (mix4Right_) { right_sample += channel4Sample; ++rightCount; }
+        }
+    }
+
+    if (leftCount > 0)
+    {
+        left_sample /= leftCount;
+    }
+
+    if (rightCount > 0)
+    {
+        right_sample /= rightCount;
+    }
+
+    if (!monoAudio_)
+    {
+        left_sample *= leftVolume_;
+        right_sample *= rightVolume_;
+    }
+
+    left_sample = HPF(left_sample) * volume_;
+    right_sample = HPF(right_sample) * volume_;
+
+    LEFT_SAMPLE_BUFFER.push_back(left_sample);
+    RIGHT_SAMPLE_BUFFER.push_back(right_sample);
 }
 
 void APU::PowerOn(bool const skipBootRom)
@@ -62,114 +194,41 @@ void APU::PowerOn(bool const skipBootRom)
     channel4_.PowerOn(skipBootRom);
 }
 
-void APU::GetAudioSample(float* left, float* right)
+void APU::SetSampleRate(int const sampleRate)
 {
-    bool allDACsDisabled = !channel1_.DACEnabled() && !channel2_.DACEnabled() && !channel4_.DACEnabled();
+    DOWNSAMPLED_RATE = sampleRate;
+    TAU = 1.0 / (DOWNSAMPLED_RATE / 2);
+    ALPHA = DELTA_T / TAU;
+    LEFT_SAMPLE_BUFFER.clear();
+    RIGHT_SAMPLE_BUFFER.clear();
+}
 
-    if (!apuEnabled_ || allDACsDisabled)
+void APU::DrainSampleBuffer(float* buffer, int count)
+{
+    auto filteredLeftBuffer = LPF(LEFT_SAMPLE_BUFFER, LAST_LEFT_SAMPLE);
+    auto filteredRightBuffer = LPF(RIGHT_SAMPLE_BUFFER, LAST_RIGHT_SAMPLE);
+
+    int numSamples = count / 2;
+    float downsampleDivider = static_cast<float>(LEFT_SAMPLE_BUFFER.size()) / numSamples;
+
+    for (int output_index = 0; output_index < count; output_index += 2)
     {
-        *left = 0.0;
-        *right = 0.0;
-        return;
-    }
+        size_t index = std::round((output_index / 2) * downsampleDivider);
 
-    float channel1Sample = channel1_.GetSample();
-    float channel2Sample = channel2_.GetSample();
-    float channel3Sample = channel3_.GetSample();
-    float channel4Sample = channel4_.GetSample();
-
-    uint_fast8_t leftCount = 0;
-    uint_fast8_t rightCount = 0;
-
-    *left = 0.0;
-    *right = 0.0;
-
-    if (!channel1Disabled_)
-    {
-        if (monoAudio_ && (mix1Left_ || mix1Right_))
+        if (index >= filteredLeftBuffer.size())
         {
-            *left += channel1Sample;
-            ++leftCount;
-
-            *right += channel1Sample;
-            ++rightCount;
+            buffer[output_index] = 0.0;
+            buffer[output_index + 1] = 0.0;
         }
         else
         {
-            if (mix1Left_) { *left += channel1Sample; ++leftCount; }
-            if (mix1Right_) { *right += channel1Sample; ++rightCount; }
+            buffer[output_index] = filteredLeftBuffer[index];
+            buffer[output_index + 1] = filteredRightBuffer[index];
         }
     }
 
-    if (!channel2Disabled_)
-    {
-        if (monoAudio_ && (mix2Left_ || mix2Right_))
-        {
-            *left += channel2Sample;
-            ++leftCount;
-
-            *right += channel2Sample;
-            ++rightCount;
-        }
-        else
-        {
-            if (mix2Left_) { *left += channel2Sample; ++leftCount; }
-            if (mix2Right_) { *right += channel2Sample; ++rightCount; }
-        }
-    }
-
-    if (!channel3Disabled_)
-    {
-        if (monoAudio_ && (mix3Left_ || mix3Right_))
-        {
-            *left += channel3Sample;
-            ++leftCount;
-
-            *right += channel3Sample;
-            ++rightCount;
-        }
-        else
-        {
-            if (mix3Left_) { *left += channel3Sample; ++leftCount; }
-            if (mix3Right_) { *right += channel3Sample; ++rightCount; }
-        }
-    }
-
-    if (!channel4Disabled_)
-    {
-        if (monoAudio_ && (mix4Left_ || mix4Right_))
-        {
-            *left += channel4Sample;
-            ++leftCount;
-
-            *right += channel4Sample;
-            ++rightCount;
-        }
-        else
-        {
-            if (mix4Left_) { *left += channel4Sample; ++leftCount; }
-            if (mix4Right_) { *right += channel4Sample; ++rightCount; }
-        }
-    }
-
-    if (leftCount > 0)
-    {
-        *left /= leftCount;
-    }
-
-    if (rightCount > 0)
-    {
-        *right /= rightCount;
-    }
-
-    if (!monoAudio_)
-    {
-        *left *= leftVolume_;
-        *right *= rightVolume_;
-    }
-
-    *left = HPF(*left) * 0.3 * volume_;
-    *right = HPF(*right) * 0.3 * volume_;
+    LEFT_SAMPLE_BUFFER.clear();
+    RIGHT_SAMPLE_BUFFER.clear();
 }
 
 void APU::ClockDIV(bool const doubleSpeed)

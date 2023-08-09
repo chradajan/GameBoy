@@ -3,7 +3,7 @@
 
 static_assert(std::is_pod<Channel1>::value, "APU is not POD!");
 
-constexpr int8_t DUTY_CYCLE[4][8] =
+static constexpr int8_t DUTY_CYCLE[4][8] =
 {
     {1, 1, 1, 1, 1, 1, 1, -1},
     {1, 1, 1, 1, 1, 1, -1, -1},
@@ -41,7 +41,7 @@ void Channel1::PowerOn(bool const skipBootRom)
     dutyStep_ = 0;
 }
 
-void Channel1::Clock()
+float Channel1::Clock()
 {
     ++periodDivider_;
 
@@ -50,6 +50,8 @@ void Channel1::Clock()
         periodDivider_ = GetPeriod();
         dutyStep_ = (dutyStep_ + 1) % 8;
     }
+
+    return GetSample();
 }
 
 void Channel1::ClockEnvelope()
@@ -139,7 +141,7 @@ float Channel1::GetSample() const
         return 0.0;
     }
 
-    uint_fast8_t volume = (frequencySweepOverflow_ || lengthTimerExpired_) ? 0x00 : currentVolume_;
+    uint_fast8_t volume = (frequencySweepOverflow_ || lengthTimerExpired_) ? 0 : currentVolume_;
     return ((volume * DUTY_CYCLE[GetDutyCycle()][dutyStep_]) / 7.5) - 1.0;
 }
 

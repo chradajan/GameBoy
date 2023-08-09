@@ -8,14 +8,12 @@ class Channel4
 public:
     void PowerOn(bool skipBootRom);
 
-    void Clock();
+    float Clock();
     void ClockEnvelope();
     void ClockLengthTimer();
 
     bool Enabled() const { return dacEnabled_ && !lengthTimerExpired_; }
     bool DACEnabled() const { return dacEnabled_; }
-
-    float GetSample() const;
 
     uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
@@ -25,6 +23,7 @@ public:
 
 private:
     void Trigger();
+    float GetSample() const;
 
     void SetLengthCounter() { lengthCounter_ = NR41_ & 0x3F; }
     bool SoundLengthTimerEnabled() const { return NR44_ & 0x40; }

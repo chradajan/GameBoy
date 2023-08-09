@@ -8,15 +8,13 @@ class Channel1
 public:
     void PowerOn(bool skipBootRom);
 
-    void Clock();
+    float Clock();
     void ClockEnvelope();
     void ClockLengthTimer();
     void ClockFrequencySweep();
 
     bool Enabled() const { return dacEnabled_ && !frequencySweepOverflow_ && (!SoundLengthTimerEnabled() || !lengthTimerExpired_); }
     bool DACEnabled() const { return dacEnabled_; }
-
-    float GetSample() const;
 
     uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
@@ -26,6 +24,7 @@ public:
 
 private:
     void Trigger();
+    float GetSample() const;
 
     void SetFrequencySweepPace() { frequencySweepPace_ = (NR10_ & 0x70) >> 4; }
     bool FrequencySweepAdditionMode() const { return (NR10_ & 0x08) == 0x00; }

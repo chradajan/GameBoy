@@ -1,5 +1,8 @@
 #include <Channel4.hpp>
+#include <algorithm>
 #include <type_traits>
+#include <vector>
+#include <iostream>
 
 static_assert(std::is_pod<Channel4>::value, "APU is not POD!");
 
@@ -24,7 +27,7 @@ void Channel4::PowerOn(bool const skipBootRom)
     triggered_ = false;
 }
 
-void Channel4::Clock()
+float Channel4::Clock()
 {
     ++lsfrCounter_;
 
@@ -32,17 +35,20 @@ void Channel4::Clock()
     {
         lsfrCounter_ = 0;
         bool result = ((LFSR_ & 0x02) >> 1) ^ (LFSR_ & 0x01);
-        LFSR_ >>= 1;
 
         if (result)
         {
-            LFSR_ |= ShortMode() ? 0x4040 : 0x4000;
+            LFSR_ |= ShortMode() ? 0x8080 : 0x8000;
         }
         else
         {
-            LFSR_ &= ShortMode() ? 0x3FBF : 0x3FFF;
+            LFSR_ &= ShortMode() ? 0x7F7F : 0x7FFF;
         }
+
+        LFSR_ >>= 1;
     }
+
+    return GetSample();
 }
 
 void Channel4::ClockEnvelope()
@@ -169,15 +175,14 @@ void Channel4::Trigger()
 
 void Channel4::SetLsfrDivider()
 {
-    uint_fast32_t cpuFreq = 1048576;
-    uint_fast32_t baseFreq = 262144;
+    constexpr uint_fast32_t cpuFreq = 1048576;
+    constexpr uint_fast32_t baseFreq = 262144;
     uint_fast8_t r = NR43_ & 0x07;
     uint_fast8_t s = (NR43_ & 0xF0) >> 4;
 
     if (r == 0)
     {
-        baseFreq *= 2;
-        lsfrDivider_ = cpuFreq / (baseFreq / (0x01 << s));
+        lsfrDivider_ = cpuFreq / ((baseFreq * 2) / (0x01 << s));
     }
     else
     {

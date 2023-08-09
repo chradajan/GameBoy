@@ -27,7 +27,7 @@ void Channel3::PowerOn(bool const skipBootRom)
     triggered_ = false;
 }
 
-void Channel3::Clock()
+float Channel3::Clock()
 {
     for (uint_fast8_t i = 0; i < 2; ++i)
     {
@@ -41,6 +41,8 @@ void Channel3::Clock()
             delayPlayback_ = false;
         }
     }
+
+    return GetSample();
 }
 
 void Channel3::ClockLengthTimer()

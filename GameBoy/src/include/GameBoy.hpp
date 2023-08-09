@@ -128,14 +128,22 @@ public:
     /// @param[in] bootRomPath Path to boot ROM.
     void PowerOn(std::filesystem::path bootRomPath);
 
-    /// @brief Run the Game Boy for some number of machine cycles.
+    /// @brief Run the Game Boy for some number of machine cycles. Return early if the frame buffer is ready to be displayed.
     /// @param[in] numCycles Number of machine cycles to run it for.
     /// @pre Initialize, InsertCartridge, and PowerOn must have been called.
-    void Clock(int numCycles);
+    /// @return Pair consisting of how many cycles were actually run and whether the screen should be refreshed.
+    std::pair<int, bool> Clock(int numCycles);
 
     bool FrameReady() { return ppu_.FrameReady(); }
 
-    void GetAudioSample(float* left, float* right) { apu_.GetAudioSample(left, right); }
+    /// @brief Set the sample rate used for audio playback. This is used to set parameters of the low pass filter.
+    /// @param sampleRate Sample rate to downsample to.
+    void SetSampleRate(int sampleRate) { apu_.SetSampleRate(sampleRate); }
+
+    /// @brief Apply low pass filters and downsampling to sample buffers and fill playback buffer.
+    /// @param buffer Pointer to buffer to fill.
+    /// @param count Buffer size. Number of samples to provide is half of this due to stereo playback.
+    void DrainSampleBuffer(float* buffer, int count) { apu_.DrainSampleBuffer(buffer, count); };
 
     /// @brief Update which buttons are currently being pressed.
     /// @param[in] down True if down is currently pressed.
@@ -189,7 +197,7 @@ public:
 private:
     /// @brief Execute the specified number of machine cycles.
     /// @param numCycles Number of machine cycles to execute.
-    void RunMCycles(int numCycles);
+    std::pair<int, bool> RunMCycles(int numCycles);
 
     void ClockVariableSpeedComponents(bool clockCpu);
 

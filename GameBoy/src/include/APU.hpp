@@ -20,10 +20,14 @@ public:
     /// @param[in] skipBootRom Whether its being powered on into the boot ROM or straight into game.
     void PowerOn(bool skipBootRom);
 
-    /// @brief Collect the current output of each channel and mix into a sample.
-    /// @param[out] left Pointer to left audio output to set.
-    /// @param[out] right Pointer to right audio output to set.
-    void GetAudioSample(float* left, float* right);
+    /// @brief Set the sample rate used for audio playback. This is used to set parameters of the low pass filter.
+    /// @param sampleRate Sample rate to downsample to.
+    void SetSampleRate(int sampleRate);
+
+    /// @brief Apply low pass filters and downsampling to sample buffers and fill playback buffer.
+    /// @param buffer Pointer to buffer to fill.
+    /// @param count Buffer size. Number of samples to provide is half of this due to stereo playback.
+    void DrainSampleBuffer(float* buffer, int count);
 
     /// @brief Clock the DIV register and advance the frame sequencer if necessary.
     /// @param[in] doubleSpeed True if system is running in double speed mode. Used to determine when to advance frame sequencer.

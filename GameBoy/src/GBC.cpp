@@ -8,11 +8,12 @@
 std::unique_ptr<GameBoy> gb = std::make_unique<GameBoy>();
 void (*frameUpdateCallback)() = nullptr;
 
-int SAMPLE_RATE = 44100;
-float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
-constexpr int CPU_CLOCK_FREQUENCY = 1048576;
-int EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY;
-float CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
+static constexpr int CPU_CLOCK_FREQUENCY = 1048576;
+
+static int SAMPLE_RATE = 44100;
+static float SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
+static int EMULATED_CPU_FREQUENCY = CPU_CLOCK_FREQUENCY;
+static float CPU_CLOCK_PERIOD = 1.0 / EMULATED_CPU_FREQUENCY;
 
 // Save states
 bool createSaveState = false;
@@ -43,15 +44,14 @@ void PowerOff()
 
 void CollectAudioSamples(float* buffer, int numSamples)
 {
-    static float audioTime = 0.0;
+    int mCycles = ((numSamples / 2) * SAMPLE_PERIOD) / CPU_CLOCK_PERIOD;
 
-    for (int i = 0; i < numSamples; i += 2)
+    while (mCycles > 0)
     {
-        int mCycles = ((SAMPLE_PERIOD - audioTime) / CPU_CLOCK_PERIOD) + 1;
-        gb->Clock(mCycles);
-        audioTime = (mCycles * CPU_CLOCK_PERIOD) - SAMPLE_PERIOD;
+        auto [cyclesRun, refreshScreen] = gb->Clock(mCycles);
+        mCycles -= cyclesRun;
 
-        if (frameUpdateCallback && gb->FrameReady())
+        if (refreshScreen && frameUpdateCallback)
         {
             frameUpdateCallback();
 
@@ -76,12 +76,9 @@ void CollectAudioSamples(float* buffer, int numSamples)
                 }
             }
         }
-
-        float left, right;
-        gb->GetAudioSample(&left, &right);
-        buffer[i] = left;
-        buffer[i + 1] = right;
     }
+
+    gb->DrainSampleBuffer(buffer, numSamples);
 }
 
 void SetInputs(bool const down,
@@ -133,6 +130,7 @@ void SetSampleRate(int const sampleRate)
 {
     SAMPLE_RATE = sampleRate;
     SAMPLE_PERIOD = 1.0 / SAMPLE_RATE;
+    gb->SetSampleRate(sampleRate);
 }
 
 void PreferDmgColors(bool useDmgColors)

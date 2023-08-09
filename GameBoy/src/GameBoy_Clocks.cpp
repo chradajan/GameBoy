@@ -2,17 +2,17 @@
 #include <cstdint>
 #include <iostream>
 
-void GameBoy::Clock(int const numCycles)
+std::pair<int, bool> GameBoy::Clock(int const numCycles)
 {
     if (!cartridge_ && !runningBootRom_)
     {
-        return;
+        return {numCycles, false};
     }
 
-    RunMCycles(numCycles);
+    return RunMCycles(numCycles);
 }
 
-void GameBoy::RunMCycles(int const numCycles)
+std::pair<int, bool> GameBoy::RunMCycles(int const numCycles)
 {
     for (int i = 0; i < numCycles; ++i)
     {
@@ -71,7 +71,14 @@ void GameBoy::RunMCycles(int const numCycles)
                 cpu_.ExitHalt();
             }
         }
+
+        if (ppu_.FrameReady())
+        {
+            return {i + 1, true};
+        }
     }
+
+    return {numCycles, false};
 }
 
 void GameBoy::ClockVariableSpeedComponents(bool const clockCpu)

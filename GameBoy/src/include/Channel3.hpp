@@ -9,13 +9,11 @@ class Channel3
 public:
     void PowerOn(bool skipBootRom);
 
-    void Clock();
+    float Clock();
     void ClockLengthTimer();
 
     bool Enabled() const { return DACEnabled() && (!SoundLengthTimerEnabled() || !lengthTimerExpired_); }
     bool DACEnabled() const { return NR30_ & 0x80; }
-
-    float GetSample();
 
     uint8_t Read(uint8_t ioAddr) const;
     void Write(uint8_t ioAddr, uint8_t data);
@@ -25,6 +23,7 @@ public:
 
 private:
     void Trigger();
+    float GetSample();
 
     bool SoundLengthTimerEnabled() const { return NR34_ & 0x40; }
     uint8_t GetOutputLevel() const { return (NR32_ & 0x60) >> 5; }
